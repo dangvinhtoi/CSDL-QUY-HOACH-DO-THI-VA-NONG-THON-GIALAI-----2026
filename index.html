@@ -52,6 +52,18 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // ==========================================
+    // FIREBASE CLOUD CONFIGURATION (KẾT NỐI ĐÁM MÂY)
+    // ==========================================
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    // ==========================================
     // LUCIDE SVG ICONS COMPONENTS (INLINE)
     // ==========================================
     const Search = ({ className = "w-4 h-4" }) => (
@@ -406,6 +418,9 @@
     // ==========================================
     function App() {
       const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [isCloudConnected, setIsCloudConnected] = useState(false);
+      const [firebaseConfigInput, setFirebaseConfigInput] = useState(() => getStorageItem('gialai_fb_config', DEFAULT_FIREBASE_CONFIG));
+      const [firebaseConfig, setFirebaseConfig] = useState(() => getStorageItem('gialai_fb_config', DEFAULT_FIREBASE_CONFIG));
       const [showLoginModal, setShowLoginModal] = useState(false);
       const [showDbModal, setShowDbModal] = useState(false);
       const [showChangePassModal, setShowChangePassModal] = useState(false);
@@ -541,6 +556,128 @@
       useEffect(() => {
         setStorageItem('gialai_qh_rasoat', reviewData);
       }, [reviewData]);
+
+      
+      // HELPER ĐỒNG BỘ ĐÁM MÂY FIREBASE
+      const syncRecordToCloud = async (collectionName, recordId, recordData, isDelete = false) => {
+        if (window.firebase && firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
+          try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const docRef = db.collection(collectionName).doc(recordId.toString());
+            if (isDelete) {
+              await docRef.delete();
+            } else {
+              await docRef.set(recordData);
+            }
+          } catch (e) {
+            console.error("Lỗi đồng bộ Cloud Firebase:", e);
+          }
+        }
+      };
+
+      const pushArrayToCloud = async (collectionName, arrayData) => {
+        if (window.firebase && firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && Array.isArray(arrayData)) {
+          try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const collRef = db.collection(collectionName);
+            const snapshot = await collRef.get();
+            const batch1 = db.batch();
+            snapshot.forEach(d => batch1.delete(d.ref));
+            await batch1.commit();
+
+            for (let i = 0; i < arrayData.length; i += 400) {
+              const batch2 = db.batch();
+              arrayData.slice(i, i + 400).forEach(item => {
+                if (item && item.id != null) {
+                  const docId = item.id.toString();
+                  const pureItem = JSON.parse(JSON.stringify(item));
+                  batch2.set(collRef.doc(docId), pureItem);
+                }
+              });
+              await batch2.commit();
+            }
+          } catch (e) {
+            console.error("Lỗi đẩy mảng lên Cloud Firebase:", e);
+          }
+        }
+      };
+
+      // REALTIME FIRESTORE LISTENERS (TỰ ĐỘNG ĐỒNG BỘ ĐÁM MÂY)
+      useEffect(() => {
+        let unsubChung, unsubChiTiet, unsubSapNhap, unsubLienHe, unsubRaSoat, unsubConfig;
+        if (window.firebase && firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId) {
+          try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            setIsCloudConnected(true);
+
+            unsubChung = db.collection('qh_chung').onSnapshot(snapshot => {
+              if (!snapshot.empty) {
+                const list = [];
+                snapshot.forEach(d => list.push({ ...d.data(), id: d.data().id || d.id }));
+                list.sort((a,b) => (parseInt(a.id)||0) - (parseInt(b.id)||0));
+                setData(list);
+                setStorageItem('gialai_qh_chung', list);
+              }
+            });
+            unsubChiTiet = db.collection('qh_chitiet').onSnapshot(snapshot => {
+              if (!snapshot.empty) {
+                const list = [];
+                snapshot.forEach(d => list.push({ ...d.data(), id: d.data().id || d.id }));
+                list.sort((a,b) => (parseInt(a.id)||0) - (parseInt(b.id)||0));
+                setDetailData(list);
+                setStorageItem('gialai_qh_chitiet', list);
+              }
+            });
+            unsubSapNhap = db.collection('qh_sapnhap').onSnapshot(snapshot => {
+              if (!snapshot.empty) {
+                const list = [];
+                snapshot.forEach(d => list.push({ ...d.data(), id: d.data().id || d.id }));
+                list.sort((a,b) => (parseInt(a.id)||0) - (parseInt(b.id)||0));
+                setMergedData(list);
+                setStorageItem('gialai_qh_sapnhap', list);
+              }
+            });
+            unsubLienHe = db.collection('qh_lienhe').onSnapshot(snapshot => {
+              if (!snapshot.empty) {
+                const list = [];
+                snapshot.forEach(d => list.push({ ...d.data(), id: d.data().id || d.id }));
+                setContactData(list);
+                setStorageItem('gialai_qh_lienhe', list);
+              }
+            });
+            unsubRaSoat = db.collection('qh_rasoat').onSnapshot(snapshot => {
+              if (!snapshot.empty) {
+                const list = [];
+                snapshot.forEach(d => list.push({ ...d.data(), id: d.data().id || d.id }));
+                setReviewData(list);
+                setStorageItem('gialai_qh_rasoat', list);
+              }
+            });
+            unsubConfig = db.collection('config').doc('admin').onSnapshot(docSnap => {
+              if (docSnap.exists && docSnap.data().password) {
+                setAdminPassword(docSnap.data().password);
+                setStorageItem('gialai_admin_pass', docSnap.data().password);
+              }
+            });
+          } catch(err) {
+            console.error("Kết nối Firebase thất bại:", err);
+            setIsCloudConnected(false);
+          }
+        } else {
+          setIsCloudConnected(false);
+        }
+        return () => {
+          if (unsubChung) unsubChung();
+          if (unsubChiTiet) unsubChiTiet();
+          if (unsubSapNhap) unsubSapNhap();
+          if (unsubLienHe) unsubLienHe();
+          if (unsubRaSoat) unsubRaSoat();
+          if (unsubConfig) unsubConfig();
+        };
+      }, [firebaseConfig]);
 
       const showNotification = (msg) => {
         setNotification(msg);
@@ -794,6 +931,7 @@
         }
         setAdminPassword(changePassForm.newPass);
         setStorageItem('gialai_admin_pass', changePassForm.newPass);
+        syncRecordToCloud('config', 'admin', { password: changePassForm.newPass });
         setShowChangePassModal(false);
         setChangePassForm({ current: '', newPass: '', confirm: '' });
         setChangePassError('');
@@ -976,14 +1114,17 @@
         const isDetail = editingRecord?._isDetail;
         const newRecord = { ...formData };
         delete newRecord._isDetail;
+        const targetColl = isDetail ? 'qh_chitiet' : 'qh_chung';
 
         if (editingRecord?.id) {
           if (isDetail) setDetailData(prev => prev.map(item => item.id === editingRecord.id ? newRecord : item));
           else setData(prev => prev.map(item => item.id === editingRecord.id ? newRecord : item));
+          syncRecordToCloud(targetColl, editingRecord.id, newRecord);
         } else {
           newRecord.id = Date.now();
           if (isDetail) setDetailData(prev => [newRecord, ...prev]);
           else setData(prev => [newRecord, ...prev]);
+          syncRecordToCloud(targetColl, newRecord.id, newRecord);
         }
         setIsModalOpen(false);
         showNotification('Đã lưu hồ sơ thành công!');
@@ -991,8 +1132,10 @@
 
       const handleDelete = (id, isDetail = false) => {
         openConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa hồ sơ này?', () => {
+          const targetColl = isDetail ? 'qh_chitiet' : 'qh_chung';
           if (isDetail) setDetailData(prev => prev.filter(item => item.id !== id));
           else setData(prev => prev.filter(item => item.id !== id));
+          syncRecordToCloud(targetColl, id, null, true);
           closeConfirm();
           showNotification('Đã xóa hồ sơ.');
         });
@@ -1019,9 +1162,11 @@
 
         if (editingMergeRecord?.id) {
           setMergedData(prev => prev.map(item => item.id === editingMergeRecord.id ? newRecord : item));
+          syncRecordToCloud('qh_sapnhap', editingMergeRecord.id, newRecord);
         } else {
           newRecord.id = Date.now();
           setMergedData(prev => [newRecord, ...prev]);
+          syncRecordToCloud('qh_sapnhap', newRecord.id, newRecord);
         }
         setIsMergeModalOpen(false);
         showNotification('Đã lưu sáp nhập!');
@@ -1030,6 +1175,7 @@
       const handleDeleteMerge = (id) => {
         openConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa dữ liệu sáp nhập này?', () => {
           setMergedData(prev => prev.filter(item => item.id !== id));
+          syncRecordToCloud('qh_sapnhap', id, null, true);
           closeConfirm();
           showNotification('Đã xóa sáp nhập.');
         });
@@ -1049,12 +1195,14 @@
       const handleSaveContact = (e) => {
         e.preventDefault();
         const newRecord = { ...contactFormData };
+        const recordId = editingContactRecord?.id || Date.now().toString();
+        newRecord.id = recordId;
         if (editingContactRecord?.id) {
           setContactData(prev => prev.map(item => item.id === editingContactRecord.id ? newRecord : item));
         } else {
-          newRecord.id = Date.now().toString();
           setContactData(prev => [newRecord, ...prev]);
         }
+        syncRecordToCloud('qh_lienhe', recordId, newRecord);
         setIsContactModalOpen(false);
         showNotification('Đã lưu danh bạ!');
       };
@@ -1062,6 +1210,7 @@
       const handleDeleteContact = (id) => {
         openConfirm('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa liên hệ này?', () => {
           setContactData(prev => prev.filter(item => item.id !== id));
+          syncRecordToCloud('qh_lienhe', id, null, true);
           closeConfirm();
           showNotification('Đã xóa liên hệ.');
         });
@@ -1081,12 +1230,14 @@
       const handleSaveReview = (e) => {
         e.preventDefault();
         const newRecord = { ...reviewFormData };
+        const recordId = editingReviewRecord?.id || Date.now().toString();
+        newRecord.id = recordId;
         if (editingReviewRecord?.id) {
           setReviewData(prev => prev.map(item => item.id === editingReviewRecord.id ? newRecord : item));
         } else {
-          newRecord.id = Date.now().toString();
           setReviewData(prev => [newRecord, ...prev]);
         }
+        syncRecordToCloud('qh_rasoat', recordId, newRecord);
         setIsReviewModalOpen(false);
         showNotification('Đã lưu rà soát!');
       };
@@ -1094,6 +1245,7 @@
       const handleDeleteReview = (id) => {
         openConfirm('Xác nhận xóa', 'Xóa dữ liệu rà soát này?', () => {
           setReviewData(prev => prev.filter(item => item.id !== id));
+          syncRecordToCloud('qh_rasoat', id, null, true);
           closeConfirm();
           showNotification('Đã xóa rà soát.');
         });
@@ -1221,7 +1373,7 @@
                 <div className="text-left md:text-right">
                   <p className="text-xs text-blue-200 uppercase tracking-wider font-semibold mb-0.5">Tác giả thực hiện</p>
                   <p className="text-sm font-bold text-white">Phòng Quy hoạch kiến trúc và Phát triển đô thị - Sở Xây dựng Gia Lai</p>
-                  <p className="text-xs text-emerald-300 mt-1 flex items-center md:justify-end gap-1 font-medium"><Clock className="h-3.5 w-3.5" /> Giai đoạn cập nhật: Từ 01/7/2025</p>
+                  <p className="text-xs text-emerald-300 mt-1 flex items-center md:justify-end gap-1 font-medium"><Clock className="h-3.5 w-3.5" /> Giai đoạn cập nhật: Từ 01/7/2025 <span className={`ml-2 px-2 py-0.5 rounded text-[11px] font-bold ${isCloudConnected ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50' : 'bg-amber-500/30 text-amber-200 border border-amber-400/50'}`}>{isCloudConnected ? '☁️ Firebase Cloud' : '💾 LocalStorage'}</span></p>
                 </div>
                 <div className="border-l border-blue-600 pl-5 flex items-center">
                   {isLoggedIn ? (
