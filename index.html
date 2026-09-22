@@ -188,6 +188,19 @@
       }
     ];
 
+    // Helper tra cứu thông tin Tỉnh và Xã/Phường theo Huyện/Thị xã
+    const getDistrictInfo = (huyenName) => {
+      if (!huyenName) return { province: '', communes: [] };
+      for (const prov of OLD_REGIONS) {
+        const foundDist = prov.districts.find(d => d.name === huyenName);
+        if (foundDist) {
+          return { province: prov.province, communes: foundDist.communes || [] };
+        }
+      }
+      return { province: '', communes: [] };
+    };
+
+
     const generate135Records = () => {
       const data = [];
       let idCounter = 1;
@@ -334,27 +347,27 @@
     ];
 
     const COLUMNS = [
-      { key: 'stt', label: 'STT', width: 'w-12' },
-      { key: 'tinhMoi', label: 'Tỉnh mới', width: 'w-24' },
-      { key: 'tinhCu', label: 'Tỉnh cũ', width: 'w-24' },
-      { key: 'huyen', label: 'Huyện/Thị xã', width: 'w-36' },
-      { key: 'xa', label: 'Xã/Phường', width: 'w-36' },
-      { key: 'tenQh', label: 'Tên quy hoạch', width: 'min-w-[250px] max-w-[350px]' },
-      { key: 'dienTich', label: 'Diện tích (ha)', width: 'w-28' },
-      { key: 'danSo', label: 'Dân số (2025/2035/2045)', width: 'w-32' },
-      { key: 'cqToChuc', label: 'CQ tổ chức lập', width: 'w-40' },
-      { key: 'cqPheDuyet', label: 'CQ phê duyệt', width: 'w-40' },
-      { key: 'cqThamDinh', label: 'CQ thẩm định', width: 'w-40' },
-      { key: 'bcThamDinh', label: 'BC thẩm định', width: 'w-36' },
-      { key: 'yKienSxd', label: 'Ý kiến Sở XD', width: 'w-36' },
-      { key: 'qdPheDuyet', label: 'QĐ phê duyệt', width: 'w-36' },
-      { key: 'congBo', label: 'Công bố', width: 'w-28' },
-      { key: 'camMoc', label: 'Cắm mốc', width: 'w-28' },
-      { key: 'keHoach', label: 'Kế hoạch TH', width: 'w-36' },
-      { key: 'file', label: 'Đính kèm', width: 'w-24' },
-      { key: 'mapLink', label: 'Bản đồ', width: 'w-24' },
-      { key: 'tinhHinhGuiHoSo', label: 'Gửi hồ sơ SXD', width: 'w-36' },
-      { key: 'ghiChu', label: 'Ghi chú', width: 'min-w-[150px] max-w-[250px]' }
+      { key: 'stt', label: 'STT', width: 'w-12 min-w-[48px]', align: 'text-center' },
+      { key: 'tinhMoi', label: 'Tỉnh mới', width: 'w-24 min-w-[96px]', align: 'text-center' },
+      { key: 'tinhCu', label: 'Tỉnh cũ', width: 'w-28 min-w-[100px]', align: 'text-center' },
+      { key: 'huyen', label: 'Huyện/Thị xã', width: 'w-36 min-w-[140px]', align: 'text-left' },
+      { key: 'xa', label: 'Xã/Phường', width: 'w-36 min-w-[140px]', align: 'text-left' },
+      { key: 'tenQh', label: 'Tên đồ án Quy hoạch', width: 'min-w-[280px] max-w-[400px]', align: 'text-left' },
+      { key: 'dienTich', label: 'Diện tích (ha)', width: 'w-28 min-w-[110px]', align: 'text-right' },
+      { key: 'danSo', label: 'Dân số', width: 'w-32 min-w-[120px]', align: 'text-right' },
+      { key: 'cqToChuc', label: 'CQ tổ chức lập', width: 'w-40 min-w-[150px]', align: 'text-left' },
+      { key: 'cqThamDinh', label: 'CQ thẩm định', width: 'w-44 min-w-[160px]', align: 'text-left' },
+      { key: 'bcThamDinh', label: 'BC thẩm định', width: 'w-36 min-w-[130px]', align: 'text-left' },
+      { key: 'yKienSxd', label: 'Ý kiến Sở XD', width: 'w-40 min-w-[150px]', align: 'text-left' },
+      { key: 'cqPheDuyet', label: 'CQ phê duyệt', width: 'w-40 min-w-[150px]', align: 'text-left' },
+      { key: 'qdPheDuyet', label: 'QĐ phê duyệt', width: 'w-40 min-w-[140px]', align: 'text-left' },
+      { key: 'keHoach', label: 'Kế hoạch TH', width: 'w-36 min-w-[130px]', align: 'text-center' },
+      { key: 'congBo', label: 'Công bố', width: 'w-32 min-w-[120px]', align: 'text-center' },
+      { key: 'camMoc', label: 'Cắm mốc', width: 'w-32 min-w-[120px]', align: 'text-center' },
+      { key: 'tinhHinhGuiHoSo', label: 'Gửi hồ sơ SXD', width: 'w-32 min-w-[120px]', align: 'text-center' },
+      { key: 'file', label: 'Đính kèm', width: 'w-28 min-w-[100px]', align: 'text-center' },
+      { key: 'mapLink', label: 'Bản đồ', width: 'w-24 min-w-[90px]', align: 'text-center' },
+      { key: 'ghiChu', label: 'Ghi chú', width: 'min-w-[180px] max-w-[300px]', align: 'text-left' }
     ];
 
     // CSV Parsers
@@ -833,15 +846,130 @@
         } else {
           setEditingRecord({ _isDetail: isDetail });
           setFormData({
-            tinhMoi: 'Gia Lai', tinhCu: 'Gia Lai', huyen: '', xa: '', tenQh: '', dienTich: '', danSo: '',
-            cqToChuc: '', cqPheDuyet: '', cqThamDinh: '', bcThamDinh: 'Đang cập nhật',
-            yKienSxd: 'Đang cập nhật', qdPheDuyet: 'Đang cập nhật', congBo: 'Chưa công bố',
-            camMoc: 'Chưa cắm mốc', keHoach: 'Đang cập nhật', file: '', mapLink: '',
-            tinhHinhGuiHoSo: 'Chưa gửi', ghiChu: ''
+            tinhMoi: 'Gia Lai',
+            tinhCu: 'Gia Lai',
+            huyen: '',
+            xa: '',
+            tenQh: '',
+            dienTich: '',
+            danSo: '',
+            cqToChuc: '',
+            cqPheDuyet: '',
+            cqThamDinh: 'Phòng Kinh tế & Hạ tầng / Quản lý Đô thị',
+            bcThamDinh: 'Đang cập nhật',
+            yKienSxd: 'Đã thống nhất theo kết luận thẩm định',
+            qdPheDuyet: 'Đang cập nhật',
+            congBo: 'Chưa công bố',
+            camMoc: 'Chưa cắm mốc',
+            keHoach: 'Đang xây dựng',
+            file: '',
+            mapLink: '',
+            tinhHinhGuiHoSo: 'Chưa gửi',
+            ghiChu: ''
           });
         }
         setIsModalOpen(true);
+ 
+
+      // Hàm xử lý khi chọn Huyện/Thị xã từ Dropdown
+      const handleHuyenChange = (selectedHuyen) => {
+        const distInfo = getDistrictInfo(selectedHuyen);
+        setFormData(prev => ({
+          ...prev,
+          huyen: selectedHuyen,
+          tinhCu: distInfo.province || prev.tinhCu || 'Gia Lai',
+          tinhMoi: 'Gia Lai',
+          xa: '' // Tự động reset Xã/Phường khi đổi Huyện để chọn lại
+        }));
       };
+     };
+      const renderTableCell = (colKey, val, row) => {
+        if (colKey === 'tenQh') {
+          return <div className="font-bold text-blue-900 leading-snug">{val || '---'}</div>;
+        }
+        if (colKey === 'dienTich') {
+          return <div className="text-right font-semibold font-mono text-slate-800">{val ? `${val} ha` : '---'}</div>;
+        }
+        if (colKey === 'danSo') {
+          return <div className="text-right font-medium font-mono text-slate-800">{val || '---'}</div>;
+        }
+        if (colKey === 'qdPheDuyet') {
+          const isApproved = val && val !== 'Đang cập nhật' && val !== 'Đang trình duyệt' && val.trim() !== '';
+          return (
+            <div className={isApproved ? 'font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded border border-emerald-200 text-xs inline-block' : 'text-slate-400 italic'}>
+              {val || 'Đang cập nhật'}
+            </div>
+          );
+        }
+        if (colKey === 'congBo') {
+          const isDone = (val || '').toLowerCase().includes('đã');
+          return (
+            <div className="text-center">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block border ${
+                isDone ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}>
+                {val || 'Chưa công bố'}
+              </span>
+            </div>
+          );
+        }
+        if (colKey === 'camMoc') {
+          const isDone = (val || '').toLowerCase().includes('đã');
+          return (
+            <div className="text-center">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block border ${
+                isDone ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}>
+                {val || 'Chưa cắm mốc'}
+              </span>
+            </div>
+          );
+        }
+        if (colKey === 'keHoach') {
+          const isDone = (val || '').toLowerCase().includes('đã');
+          return (
+            <div className="text-center">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block border ${
+                isDone ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}>
+                {val || 'Đang xây dựng'}
+              </span>
+            </div>
+          );
+        }
+        if (colKey === 'tinhHinhGuiHoSo') {
+          const isDone = (val || '').toLowerCase().includes('đã');
+          return (
+            <div className="text-center">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block border ${
+                isDone ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}>
+                {val || 'Chưa gửi'}
+              </span>
+            </div>
+          );
+        }
+        if (colKey === 'file' && val) {
+          return (
+            <div className="text-center">
+              <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition-colors">
+                <Download className="h-3 w-3 mr-1" /> Tải về
+              </a>
+            </div>
+          );
+        }
+        if (colKey === 'mapLink' && val) {
+          return (
+            <div className="text-center">
+              <a href={val.startsWith('http') ? val : `https://${val}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                <MapPin className="h-3 w-3 mr-1" /> Bản đồ
+              </a>
+            </div>
+          );
+        }
+        return <div className={!val || val === 'Đang cập nhật' ? 'text-slate-400 italic' : 'text-slate-800 font-medium'}>{val || '---'}</div>;
+      };
+
 
       const handleSave = (e) => {
         e.preventDefault();
@@ -1227,23 +1355,22 @@
                   <div className="p-3 border-b bg-slate-50 flex justify-between items-center"><h2 className="font-bold text-blue-900">DANH SÁCH TIẾN ĐỘ LẬP QUY HOẠCH CHUNG ĐT & NT</h2><span className="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">Hiển thị: {filteredData.length} / {data.length}</span></div>
                   <div className="overflow-auto flex-1 custom-scrollbar pb-2">
                     <table className="w-max min-w-full divide-y border-collapse">
-                      <thead className="bg-slate-100 sticky top-0 z-10"><tr>{COLUMNS.map((col) => <th key={col.key} className={`px-3 py-3 text-left text-xs font-bold text-slate-700 uppercase border-x bg-slate-200/90 ${col.width}`}>{col.label}</th>)}{isLoggedIn && <th className="px-3 py-3 text-center text-xs font-bold text-slate-700 uppercase border-x bg-slate-200 sticky right-0 z-20 w-20">Thao tác</th>}</tr></thead>
+                      <thead className="bg-slate-100 sticky top-0 z-10"><tr>{COLUMNS.map((col) => <th key={col.key} className={`px-3 py-3 ${col.align || 'text-left'} text-xs font-bold text-slate-800 uppercase border-x bg-slate-200/90 ${col.width}`}>{col.label}</th>)}{isLoggedIn && <th className="px-3 py-3 text-center text-xs font-bold text-slate-800 uppercase border-x bg-slate-200 sticky right-0 z-20 w-24">Thao tác</th>}</tr></thead>
                       <tbody className="bg-white divide-y">
                         {filteredData.map((row, index) => (
-                          <tr key={row.id} className="hover:bg-blue-50/60 group">
-                            <td className="px-3 py-2 text-center text-sm border-x">{index + 1}</td>
+                          <tr key={row.id} className="hover:bg-blue-50/60 transition-colors group">
+                            <td className="px-3 py-3 text-center text-xs font-bold text-slate-500 border-x">{index + 1}</td>
                             {COLUMNS.slice(1).map(col => (
-                              <td key={`${row.id}-${col.key}`} className={`px-3 py-2 text-sm border-x align-middle whitespace-normal break-words ${col.width}`}>
-                                {col.key === 'tenQh' ? (<div className="font-semibold text-blue-900">{row[col.key]}</div>) 
-                                : col.key === 'file' && row[col.key] ? (<a href={row[col.key].startsWith('http') ? row[col.key] : `https://${row[col.key]}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-blue-600 bg-blue-50 px-2 py-1 rounded border hover:bg-blue-100 transition-colors font-medium"><Download className="h-3 w-3 mr-1" /> Tải về</a>)
-                                : col.key === 'mapLink' && row[col.key] ? (<a href={row[col.key].startsWith('http') ? row[col.key] : `https://${row[col.key]}`} target="_blank" rel="noopener noreferrer" className="inline-flex text-emerald-600 bg-emerald-50 px-2 py-1 rounded border hover:bg-emerald-100 font-medium transition-colors"><MapPin className="h-3 w-3 mr-1 mt-0.5" /> Map</a>)
-                                : col.key === 'qdPheDuyet' ? (<div className={row[col.key] && row[col.key] !== 'Đang cập nhật' && row[col.key] !== 'Đang trình duyệt' ? 'font-bold text-emerald-600' : 'text-slate-400 italic'}>{row[col.key]}</div>)
-                                : (<div className={!row[col.key] || row[col.key]==='Đang cập nhật' ? 'text-slate-400 italic' : ''}>{row[col.key] || '---'}</div>)}
+                              <td key={`${row.id}-${col.key}`} className={`px-3 py-2.5 text-xs border-x align-middle whitespace-normal break-words ${col.width}`}>
+                                {renderTableCell(col.key, row[col.key], row)}
                               </td>
                             ))}
                             {isLoggedIn && (
                               <td className="px-2 py-2 text-center border-x bg-white group-hover:bg-blue-50/60 sticky right-0 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.05)]">
-                                <div className="flex justify-center gap-1"><button onClick={() => openModal(row, false)} className="p-1.5 text-blue-600 hover:bg-blue-200 rounded"><Edit2 className="h-4 w-4" /></button><button onClick={() => handleDelete(row.id, false)} className="p-1.5 text-red-600 hover:bg-red-200 rounded"><Trash2 className="h-4 w-4" /></button></div>
+                                <div className="flex justify-center gap-1">
+                                  <button onClick={() => openModal(row, false)} className="p-1.5 text-blue-600 hover:bg-blue-200 rounded transition-colors" title="Chỉnh sửa"><Edit2 className="h-4 w-4" /></button>
+                                  <button onClick={() => handleDelete(row.id, false)} className="p-1.5 text-red-600 hover:bg-red-200 rounded transition-colors" title="Xóa"><Trash2 className="h-4 w-4" /></button>
+                                </div>
                               </td>
                             )}
                           </tr>
@@ -1319,23 +1446,22 @@
                   <div className="p-3 border-b bg-indigo-50 flex justify-between items-center"><h2 className="font-bold text-indigo-900 uppercase">DANH SÁCH QUY HOẠCH CHI TIẾT CÁC XÃ/PHƯỜNG</h2><span className="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">Hiển thị: {filteredDetailData.length} / {detailData.length}</span></div>
                   <div className="overflow-auto flex-1 custom-scrollbar pb-2">
                     <table className="w-max min-w-full divide-y border-collapse">
-                      <thead className="bg-slate-100 sticky top-0 z-10"><tr>{COLUMNS.map((col) => <th key={col.key} className={`px-3 py-3 text-left text-xs font-bold text-slate-700 uppercase border-x bg-indigo-100/90 ${col.width}`}>{col.key === 'danSo' ? 'Dân số' : col.label}</th>)}{isLoggedIn && <th className="px-3 py-3 text-center text-xs font-bold uppercase border-x bg-indigo-100 sticky right-0 z-20 w-20">Thao tác</th>}</tr></thead>
+                      <thead className="bg-slate-100 sticky top-0 z-10"><tr>{COLUMNS.map((col) => <th key={col.key} className={`px-3 py-3 ${col.align || 'text-left'} text-xs font-bold text-indigo-950 uppercase border-x bg-indigo-100/90 ${col.width}`}>{col.key === 'danSo' ? 'Dân số' : col.label}</th>)}{isLoggedIn && <th className="px-3 py-3 text-center text-xs font-bold text-indigo-950 uppercase border-x bg-indigo-200 sticky right-0 z-20 w-24">Thao tác</th>}</tr></thead>
                       <tbody className="bg-white divide-y">
                         {filteredDetailData.map((row, index) => (
-                          <tr key={row.id} className="hover:bg-indigo-50/60 group">
-                            <td className="px-3 py-2 text-center text-sm border-x">{index + 1}</td>
+                          <tr key={row.id} className="hover:bg-indigo-50/60 transition-colors group">
+                            <td className="px-3 py-3 text-center text-xs font-bold text-slate-500 border-x">{index + 1}</td>
                             {COLUMNS.slice(1).map(col => (
-                              <td key={`${row.id}-${col.key}`} className={`px-3 py-2 text-sm border-x align-middle whitespace-normal break-words ${col.width}`}>
-                                {col.key === 'tenQh' ? (<div className="font-semibold text-indigo-900">{row[col.key]}</div>) 
-                                : col.key === 'file' && row[col.key] ? (<a href={row[col.key].startsWith('http') ? row[col.key] : `https://${row[col.key]}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-indigo-600 bg-indigo-50 px-2 py-1 rounded border hover:bg-indigo-100 font-semibold transition-colors"><Download className="h-3 w-3 mr-1" /> Tải về</a>)
-                                : col.key === 'mapLink' && row[col.key] ? (<a href={row[col.key].startsWith('http') ? row[col.key] : `https://${row[col.key]}`} target="_blank" rel="noopener noreferrer" className="inline-flex text-emerald-600 bg-emerald-50 px-2 py-1 rounded border hover:bg-emerald-100 font-medium transition-colors"><MapPin className="h-3 w-3 mr-1 mt-0.5" /> Map</a>)
-                                : col.key === 'qdPheDuyet' ? (<div className={row[col.key] && row[col.key] !== 'Đang cập nhật' ? 'font-bold text-emerald-600' : 'text-slate-400 italic'}>{row[col.key]}</div>)
-                                : (<div className={!row[col.key] || row[col.key]==='Đang cập nhật' ? 'text-slate-400 italic' : ''}>{row[col.key] || '---'}</div>)}
+                              <td key={`${row.id}-${col.key}`} className={`px-3 py-2.5 text-xs border-x align-middle whitespace-normal break-words ${col.width}`}>
+                                {renderTableCell(col.key, row[col.key], row)}
                               </td>
                             ))}
                             {isLoggedIn && (
                               <td className="px-2 py-2 text-center border-x bg-white group-hover:bg-indigo-50/60 sticky right-0 z-10 shadow-[-4px_0_10px_rgba(0,0,0,0.05)]">
-                                <div className="flex justify-center gap-1"><button onClick={() => openModal(row, true)} className="p-1.5 text-indigo-600 hover:bg-indigo-200 rounded"><Edit2 className="h-4 w-4" /></button><button onClick={() => handleDelete(row.id, true)} className="p-1.5 text-red-600 hover:bg-red-200 rounded"><Trash2 className="h-4 w-4" /></button></div>
+                                <div className="flex justify-center gap-1">
+                                  <button onClick={() => openModal(row, true)} className="p-1.5 text-indigo-600 hover:bg-indigo-200 rounded transition-colors" title="Chỉnh sửa"><Edit2 className="h-4 w-4" /></button>
+                                  <button onClick={() => handleDelete(row.id, true)} className="p-1.5 text-red-600 hover:bg-red-200 rounded transition-colors" title="Xóa"><Trash2 className="h-4 w-4" /></button>
+                                </div>
                               </td>
                             )}
                           </tr>
@@ -1536,27 +1662,221 @@
           {/* RECORD MODAL (QHC & QHCT) */}
           {isModalOpen && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
-              <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col">
-                <div className="bg-blue-800 p-4 flex justify-between items-center text-white shrink-0"><h3 className="font-bold">{editingRecord?.id ? 'Cập nhật hồ sơ' : 'Thêm mới hồ sơ'}</h3><button onClick={() => setIsModalOpen(false)} className="hover:bg-blue-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
-                <form onSubmit={handleSave} className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold mb-1">Tỉnh cũ</label><input type="text" value={formData.tinhCu || ''} onChange={e=>setFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
-                    <div><label className="block text-xs font-bold mb-1">Huyện/Thị xã</label><input type="text" value={formData.huyen || ''} onChange={e=>setFormData(p=>({...p, huyen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
-                    <div><label className="block text-xs font-bold mb-1">Xã/Phường</label><input type="text" value={formData.xa || ''} onChange={e=>setFormData(p=>({...p, xa: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
-                    <div><label className="block text-xs font-bold mb-1">Tên Quy hoạch</label><input type="text" value={formData.tenQh || ''} onChange={e=>setFormData(p=>({...p, tenQh: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
-                    <div><label className="block text-xs font-bold mb-1">Diện tích (ha)</label><input type="text" value={formData.dienTich || ''} onChange={e=>setFormData(p=>({...p, dienTich: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
-                    <div><label className="block text-xs font-bold mb-1">Dân số</label><input type="text" value={formData.danSo || ''} onChange={e=>setFormData(p=>({...p, danSo: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
-                    <div><label className="block text-xs font-bold mb-1">Cơ quan tổ chức lập</label><input type="text" value={formData.cqToChuc || ''} onChange={e=>setFormData(p=>({...p, cqToChuc: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
-                    <div><label className="block text-xs font-bold mb-1">Cơ quan phê duyệt</label><input type="text" value={formData.cqPheDuyet || ''} onChange={e=>setFormData(p=>({...p, cqPheDuyet: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
-                    <div><label className="block text-xs font-bold mb-1">Quyết định phê duyệt</label><input type="text" value={formData.qdPheDuyet || ''} onChange={e=>setFormData(p=>({...p, qdPheDuyet: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
-                    <div><label className="block text-xs font-bold mb-1">Tình trạng công bố</label><select value={formData.congBo || 'Chưa công bố'} onChange={e=>setFormData(p=>({...p, congBo: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã công bố">Đã công bố</option><option value="Chưa công bố">Chưa công bố</option></select></div>
-                    <div><label className="block text-xs font-bold mb-1">Tình trạng cắm mốc</label><select value={formData.camMoc || 'Chưa cắm mốc'} onChange={e=>setFormData(p=>({...p, camMoc: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã cắm mốc">Đã cắm mốc</option><option value="Chưa cắm mốc">Chưa cắm mốc</option></select></div>
-                    <div><label className="block text-xs font-bold mb-1">Link File đính kèm</label><input type="text" value={formData.file || ''} onChange={e=>setFormData(p=>({...p, file: e.target.value}))} className="w-full border p-2 rounded text-sm" placeholder="https://..." /></div>
-                    <div><label className="block text-xs font-bold mb-1">Link Bản đồ Google Map</label><input type="text" value={formData.mapLink || ''} onChange={e=>setFormData(p=>({...p, mapLink: e.target.value}))} className="w-full border p-2 rounded text-sm" placeholder="https://maps.google.com/..." /></div>
-                    <div><label className="block text-xs font-bold mb-1">Gửi hồ sơ về Sở XD</label><select value={formData.tinhHinhGuiHoSo || 'Chưa gửi'} onChange={e=>setFormData(p=>({...p, tinhHinhGuiHoSo: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã gửi">Đã gửi</option><option value="Chưa gửi">Chưa gửi</option></select></div>
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden max-h-[92vh] flex flex-col animate-in fade-in zoom-in">
+                <div className="bg-blue-800 p-4 flex justify-between items-center text-white shrink-0">
+                  <h3 className="font-bold text-base flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-200" />
+                    {editingRecord?.id ? 'Cập nhật hồ sơ Quy hoạch' : 'Thêm mới hồ sơ Quy hoạch'}
+                  </h3>
+                  <button onClick={() => setIsModalOpen(false)} className="hover:bg-blue-700 p-1 rounded-full transition-colors"><X className="w-5 h-5"/></button>
+                </div>
+                
+                <form onSubmit={handleSave} className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+                  {/* Section 1: Đơn vị hành chính & Địa bàn */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-blue-600" /> 1. Đơn vị hành chính & Địa bàn
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Huyện / Thị xã <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.huyen || ''}
+                          onChange={e => handleHuyenChange(e.target.value)}
+                          className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-800"
+                          required
+                        >
+                          <option value="">-- Chọn Huyện/Thị xã --</option>
+                          {OLD_REGIONS.map(prov => (
+                            <optgroup key={prov.province} label={`Tỉnh ${prov.province}`}>
+                              {prov.districts.map(dist => (
+                                <option key={dist.name} value={dist.name}>
+                                  {dist.name}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Tỉnh cũ <span className="text-xs text-blue-600 font-normal">(Tự động)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.tinhCu || ''}
+                          onChange={e => setFormData(p => ({ ...p, tinhCu: e.target.value }))}
+                          placeholder="Tự động cập nhật..."
+                          className="w-full border p-2 rounded-lg text-sm bg-slate-100 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Tỉnh mới <span className="text-xs text-blue-600 font-normal">(Tự động)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.tinhMoi || 'Gia Lai'}
+                          onChange={e => setFormData(p => ({ ...p, tinhMoi: e.target.value }))}
+                          className="w-full border p-2 rounded-lg text-sm bg-slate-100 font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Xã / Phường <span className="text-red-500">*</span>
+                        </label>
+                        {formData.huyen && getDistrictInfo(formData.huyen).communes.length > 0 ? (
+                          <select
+                            value={formData.xa || ''}
+                            onChange={e => setFormData(p => ({ ...p, xa: e.target.value }))}
+                            className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-800"
+                            required
+                          >
+                            <option value="">-- Chọn Xã/Phường --</option>
+                            {getDistrictInfo(formData.huyen).communes.map(comm => (
+                              <option key={comm} value={comm}>
+                                {comm}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={formData.xa || ''}
+                            onChange={e => setFormData(p => ({ ...p, xa: e.target.value }))}
+                            placeholder="Nhập tên Xã/Phường..."
+                            className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            required
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div><label className="block text-xs font-bold mb-1">Ghi chú</label><textarea value={formData.ghiChu || ''} onChange={e=>setFormData(p=>({...p, ghiChu: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={2}></textarea></div>
-                  <div className="flex justify-end gap-3 pt-3 border-t"><button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded text-sm font-medium">Hủy</button><button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-bold">Lưu hồ sơ</button></div>
+
+                  {/* Section 2: Thông tin Đồ án & Quy mô */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-blue-600" /> 2. Thông tin đồ án & Quy mô
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-3">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Tên đồ án Quy hoạch</label>
+                        <input type="text" value={formData.tenQh || ''} onChange={e=>setFormData(p=>({...p, tenQh: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-blue-900" placeholder="Nhập tên đồ án quy hoạch..." required />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Diện tích (ha)</label>
+                        <input type="text" value={formData.dienTich || ''} onChange={e=>setFormData(p=>({...p, dienTich: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 150.5" />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Dân số (quy mô)</label>
+                        <input type="text" value={formData.danSo || ''} onChange={e=>setFormData(p=>({...p, danSo: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 12,500 người" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 3: Cơ quan Thực hiện, Thẩm định & Phê duyệt */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-blue-600" /> 3. Trách nhiệm Thực hiện, Thẩm định & Phê duyệt
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Cơ quan tổ chức lập</label>
+                        <input type="text" value={formData.cqToChuc || ''} onChange={e=>setFormData(p=>({...p, cqToChuc: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: UBND xã..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-blue-700 mb-1">Cơ quan thẩm định <span className="text-emerald-600 text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">Mới</span></label>
+                        <input type="text" value={formData.cqThamDinh || ''} onChange={e=>setFormData(p=>({...p, cqThamDinh: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Phòng KT&HT / Quản lý đô thị" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-blue-700 mb-1">Báo cáo thẩm định <span className="text-emerald-600 text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">Mới</span></label>
+                        <input type="text" value={formData.bcThamDinh || ''} onChange={e=>setFormData(p=>({...p, bcThamDinh: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 105/BC-UBND" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-blue-700 mb-1">Ý kiến Sở Xây dựng <span className="text-emerald-600 text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">Mới</span></label>
+                        <input type="text" value={formData.yKienSxd || ''} onChange={e=>setFormData(p=>({...p, yKienSxd: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Đã thống nhất theo kết luận" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Cơ quan phê duyệt</label>
+                        <input type="text" value={formData.cqPheDuyet || ''} onChange={e=>setFormData(p=>({...p, cqPheDuyet: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: UBND huyện..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Quyết định phê duyệt</label>
+                        <input type="text" value={formData.qdPheDuyet || ''} onChange={e=>setFormData(p=>({...p, qdPheDuyet: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: 1234/QĐ-UBND" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 4: Tiến độ, Công bố & Cắm mốc */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-blue-600" /> 4. Tiến độ, Công bố & Cắm mốc
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-blue-700 mb-1">Kế hoạch thực hiện <span className="text-emerald-600 text-[10px] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 ml-1">Mới</span></label>
+                        <input type="text" value={formData.keHoach || ''} onChange={e=>setFormData(p=>({...p, keHoach: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="VD: Đã ban hành KH" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Tình trạng công bố</label>
+                        <select value={formData.congBo || 'Chưa công bố'} onChange={e=>setFormData(p=>({...p, congBo: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                          <option value="Đã công bố">Đã công bố</option>
+                          <option value="Chưa công bố">Chưa công bố</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Tình trạng cắm mốc</label>
+                        <select value={formData.camMoc || 'Chưa cắm mốc'} onChange={e=>setFormData(p=>({...p, camMoc: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                          <option value="Đã cắm mốc">Đã cắm mốc</option>
+                          <option value="Chưa cắm mốc">Chưa cắm mốc</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Gửi hồ sơ về Sở XD</label>
+                        <select value={formData.tinhHinhGuiHoSo || 'Chưa gửi'} onChange={e=>setFormData(p=>({...p, tinhHinhGuiHoSo: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none">
+                          <option value="Đã gửi">Đã gửi</option>
+                          <option value="Chưa gửi">Chưa gửi</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 5: Đính kèm & Ghi chú */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                      <Download className="w-4 h-4 text-blue-600" /> 5. Đính kèm & Ghi chú
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Link File đính kèm</label>
+                        <input type="text" value={formData.file || ''} onChange={e=>setFormData(p=>({...p, file: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://drive.google.com/..." />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Link Bản đồ GIS / Maps</label>
+                        <input type="text" value={formData.mapLink || ''} onChange={e=>setFormData(p=>({...p, mapLink: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://maps.google.com/..." />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Ghi chú bổ sung</label>
+                        <input type="text" value={formData.ghiChu || ''} onChange={e=>setFormData(p=>({...p, ghiChu: e.target.value}))} className="w-full border p-2 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập ghi chú chi tiết..." />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3 border-t shrink-0">
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm transition-colors">
+                      Hủy bỏ
+                    </button>
+                    <button type="submit" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-md flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4" /> Lưu hồ sơ
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -1568,8 +1888,36 @@
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
                 <div className="bg-amber-600 p-4 flex justify-between items-center text-white"><h3 className="font-bold">{editingMergeRecord?.id ? 'Sửa thông tin sáp nhập' : 'Thêm đơn vị sáp nhập'}</h3><button onClick={() => setIsMergeModalOpen(false)} className="hover:bg-amber-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
                 <form onSubmit={handleSaveMerge} className="p-6 space-y-4">
-                  <div><label className="block text-xs font-bold mb-1">Tỉnh cũ</label><input type="text" value={mergeFormData.tinhCu || ''} onChange={e=>setMergeFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
-                  <div><label className="block text-xs font-bold mb-1">Huyện/Thị xã</label><input type="text" value={mergeFormData.huyen || ''} onChange={e=>setMergeFormData(p=>({...p, huyen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Huyện / Thị xã <span className="text-red-500">*</span></label>
+                    <select
+                      value={mergeFormData.huyen || ''}
+                      onChange={e => {
+                        const selectedHuyen = e.target.value;
+                        const distInfo = getDistrictInfo(selectedHuyen);
+                        setMergeFormData(p => ({
+                          ...p,
+                          huyen: selectedHuyen,
+                          tinhCu: distInfo.province || p.tinhCu || 'Gia Lai'
+                        }));
+                      }}
+                      className="w-full border p-2 rounded text-sm bg-white font-medium"
+                      required
+                    >
+                      <option value="">-- Chọn Huyện/Thị xã --</option>
+                      {OLD_REGIONS.map(prov => (
+                        <optgroup key={prov.province} label={`Tỉnh ${prov.province}`}>
+                          {prov.districts.map(dist => (
+                            <option key={dist.name} value={dist.name}>{dist.name}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Tỉnh cũ <span className="text-xs text-blue-600 font-normal">(Tự động)</span></label>
+                    <input type="text" value={mergeFormData.tinhCu || ''} onChange={e=>setMergeFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm bg-slate-100 font-semibold" required />
+                  </div>
                   <div><label className="block text-xs font-bold mb-1">Tên Xã/Phường MỚI</label><input type="text" value={mergeFormData.xaMoi || ''} onChange={e=>setMergeFormData(p=>({...p, xaMoi: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
                   <div><label className="block text-xs font-bold mb-1">Các Xã/Phường CŨ (phân cách bằng dấu phẩy)</label><textarea value={mergeFormData.cacXaCuStr || ''} onChange={e=>setMergeFormData(p=>({...p, cacXaCuStr: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={3} placeholder="Ví dụ: Phường Hải Cảng, Phường Thị Nại..." required></textarea></div>
                   <div><label className="block text-xs font-bold mb-1">Căn cứ pháp lý</label><input type="text" value={mergeFormData.canCu || ''} onChange={e=>setMergeFormData(p=>({...p, canCu: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
@@ -1602,8 +1950,36 @@
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
                 <div className="bg-rose-700 p-4 flex justify-between items-center text-white"><h3 className="font-bold">{editingReviewRecord?.id ? 'Sửa nội dung rà soát' : 'Thêm nội dung rà soát'}</h3><button onClick={() => setIsReviewModalOpen(false)} className="hover:bg-rose-800 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
                 <form onSubmit={handleSaveReview} className="p-6 space-y-4">
-                  <div><label className="block text-xs font-bold mb-1">Tỉnh cũ</label><input type="text" value={reviewFormData.tinhCu || ''} onChange={e=>setReviewFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
-                  <div><label className="block text-xs font-bold mb-1">Huyện/Thị xã cũ</label><input type="text" value={reviewFormData.huyen || ''} onChange={e=>setReviewFormData(p=>({...p, huyen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Huyện / Thị xã (Cũ) <span className="text-red-500">*</span></label>
+                    <select
+                      value={reviewFormData.huyen || ''}
+                      onChange={e => {
+                        const selectedHuyen = e.target.value;
+                        const distInfo = getDistrictInfo(selectedHuyen);
+                        setReviewFormData(p => ({
+                          ...p,
+                          huyen: selectedHuyen,
+                          tinhCu: distInfo.province || p.tinhCu || 'Gia Lai'
+                        }));
+                      }}
+                      className="w-full border p-2 rounded text-sm bg-white font-medium"
+                      required
+                    >
+                      <option value="">-- Chọn Huyện/Thị xã --</option>
+                      {OLD_REGIONS.map(prov => (
+                        <optgroup key={prov.province} label={`Tỉnh ${prov.province}`}>
+                          {prov.districts.map(dist => (
+                            <option key={dist.name} value={dist.name}>{dist.name}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold mb-1">Tỉnh cũ <span className="text-xs text-blue-600 font-normal">(Tự động)</span></label>
+                    <input type="text" value={reviewFormData.tinhCu || ''} onChange={e=>setReviewFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm bg-slate-100 font-semibold" required />
+                  </div>
                   <div><label className="block text-xs font-bold mb-1">Nội dung định hướng phát triển</label><textarea value={reviewFormData.noiDung || ''} onChange={e=>setReviewFormData(p=>({...p, noiDung: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={3} required></textarea></div>
                   <div><label className="block text-xs font-bold mb-1">Đơn vị phụ trách</label><input type="text" value={reviewFormData.coQuan || ''} onChange={e=>setReviewFormData(p=>({...p, coQuan: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
                   <div><label className="block text-xs font-bold mb-1">Trạng thái rà soát</label><select value={reviewFormData.trangThai || 'Chưa rà soát'} onChange={e=>setReviewFormData(p=>({...p, trangThai: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã hoàn thành">Đã hoàn thành</option><option value="Đang rà soát">Đang rà soát</option><option value="Chưa rà soát">Chưa rà soát</option></select></div>
