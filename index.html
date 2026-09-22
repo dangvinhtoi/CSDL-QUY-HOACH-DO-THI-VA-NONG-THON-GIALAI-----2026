@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSDL QUY HOẠCH GIA LAI & TRA CỨU SÁP NHẬP ĐVHC</title>
+  <title>CSDL QUY HOẠCH GIA LAI (v8.1) & TRA CỨU SÁP NHẬP ĐVHC</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -54,7 +54,7 @@
     // ==========================================
     // BỘ LỌC BỘ NHỚ LOCALSTORAGE (GLOBAL HELPERS)
     // ==========================================
-    const getStorageItem = (key, fallbackSupplier) => {
+    function getStorageItem(key, fallbackSupplier) {
       try {
         const item = localStorage.getItem(key);
         if (item !== null && item !== undefined && item !== '') {
@@ -65,15 +65,17 @@
         console.error('Lỗi đọc localStorage:', key, e);
       }
       return typeof fallbackSupplier === 'function' ? fallbackSupplier() : fallbackSupplier;
-    };
+    }
+    window.getStorageItem = getStorageItem;
 
-    const setStorageItem = (key, value) => {
+    function setStorageItem(key, value) {
       try {
         localStorage.setItem(key, JSON.stringify(value));
       } catch (e) {
         console.error('Lỗi ghi localStorage:', key, e);
       }
-    };
+    }
+    window.setStorageItem = setStorageItem;
 
 
     // ==========================================
@@ -1370,7 +1372,7 @@
               <div className="flex items-center gap-3">
                 <div className="bg-white p-2 rounded-lg"><MapPin className="text-blue-800 h-6 w-6" /></div>
                 <div>
-                  <h1 className="text-xl font-bold uppercase tracking-wide">CSDL QUY HOẠCH GIA LAI</h1>
+                  <h1 className="text-xl font-bold uppercase tracking-wide">CSDL QUY HOẠCH GIA LAI (v8.1)</h1>
                   <p className="text-blue-200 text-sm">Hệ thống quản lý quy hoạch & tra cứu sáp nhập ĐVHC</p>
                 </div>
               </div>
