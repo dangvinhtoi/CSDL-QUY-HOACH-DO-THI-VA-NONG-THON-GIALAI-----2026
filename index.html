@@ -8,12 +8,12 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- React 18 & ReactDOM CDN -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- React 18 & ReactDOM CDN (cdnjs) -->
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   
-  <!-- Babel Standalone -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Babel Standalone (cdnjs) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
   
   <style>
     .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 10px; }
@@ -28,13 +28,31 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased">
+  <!-- Thẻ hiển thị thông báo lỗi hệ thống nếu JS không khởi chạy được -->
+  <div id="error-display" style="display:none; padding:20px; color:#991b1b; background:#fee2e2; border:1px solid #f87171; margin:20px; font-family:sans-serif; border-radius:8px; z-index:99999; position:relative;">
+    <h3 style="font-size:18px; font-weight:bold; margin-bottom:8px;">⚠️ Thông báo Lỗi Khởi Chạy Web (JS Error):</h3>
+    <pre id="error-message" style="white-space:pre-wrap; word-break:break-all; font-size:13px;"></pre>
+  </div>
+  <script>
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      var display = document.getElementById('error-display');
+      var msgElem = document.getElementById('error-message');
+      if (display && msgElem) {
+        display.style.display = 'block';
+        msgElem.textContent = 'Lỗi JavaScript: ' + msg + '\nFile: ' + url + ' (Dòng: ' + lineNo + ', Cột: ' + columnNo + ')\n' + (error && error.stack ? error.stack : '');
+      }
+      return false;
+    };
+  </script>
+
   <div id="root"></div>
 
-  <script type="text/babel">
+  <!-- React & Babel Application Code -->
+  <script type="text/babel" data-presets="react,env">
     const { useState, useEffect, useMemo, useRef } = React;
 
     // ==========================================
-    // LUCIDE SVG ICONS COMPONENTS (STANDALONE)
+    // LUCIDE SVG ICONS COMPONENTS (INLINE)
     // ==========================================
     const Search = ({ className = "w-4 h-4" }) => (
       <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -494,6 +512,7 @@
         const res = { 'Bình Định': [], 'Gia Lai': [] };
         OLD_REGIONS.forEach(prov => {
           const key = prov.province;
+          if (!res[key]) res[key] = [];
           prov.districts.forEach(dist => {
             const distDetail = detailData.filter(d => d.huyen === dist.name);
             const total = distDetail.length;
@@ -622,112 +641,6 @@
         });
       };
 
-      // IMPORT CSV
-      const handleImportCSV = (e, type) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            let rawData = event.target.result;
-            if (rawData.charCodeAt(0) === 0xFEFF) rawData = rawData.slice(1);
-            const lines = parseCSVLine(rawData).filter(l => l.trim());
-            if (lines.length < 2) return showNotification('File không có dữ liệu!');
-
-            let separator = ',';
-            if (lines[0].indexOf(';') > lines[0].indexOf(',')) separator = ';';
-            else if (lines[0].indexOf('\t') > lines[0].indexOf(',')) separator = '\t';
-
-            const headers = parseCSVColumns(lines[0], separator).map(h => h.toLowerCase().trim().replace(/['"]/g, ''));
-            const recordsToSave = [];
-            let lastDonVi = '';
-            let lastHuyen = '';
-            let lastTinh = '';
-
-            for (let i = 1; i < lines.length; i++) {
-              let cols = parseCSVColumns(lines[i], separator);
-              
-              if (type === 'SAPNHAP' && cols.length > headers.length && headers.length >= 2) {
-                const diff = cols.length - headers.length;
-                const lastCol = cols.pop();
-                const mergedVal = cols.splice(headers.length - 2, diff + 1).join(', ');
-                cols.push(mergedVal);
-                cols.push(lastCol);
-              }
-
-              const rawItem = {};
-              headers.forEach((h, index) => { rawItem[h] = cols[index] ? cols[index].trim() : ''; });
-
-              const getVal = (keys) => {
-                for (let k of keys) {
-                  const found = Object.keys(rawItem).find(rk => rk.includes(k));
-                  if (found && rawItem[found]) return rawItem[found];
-                }
-                return '';
-              };
-
-              if (type === 'CHUNG' || type === 'CHITIET') {
-                const item = {
-                  id: parseInt(getVal(['stt','id'])) || (Date.now() + i),
-                  tinhMoi: getVal(['tỉnh mới','tỉnh']), tinhCu: getVal(['tỉnh cũ']),
-                  huyen: getVal(['huyện','thị xã','thành phố']), xa: getVal(['xã','phường']),
-                  tenQh: getVal(['tên quy hoạch','tên qh']), dienTich: getVal(['diện tích']), danSo: getVal(['dân số']),
-                  cqToChuc: getVal(['tổ chức','cq tổ chức']), cqPheDuyet: getVal(['cơ quan phê duyệt','cq phê duyệt']),
-                  cqThamDinh: getVal(['thẩm định','cq thẩm định']), bcThamDinh: getVal(['báo cáo thẩm định','bc thẩm định']),
-                  yKienSxd: getVal(['ý kiến','sxd']), qdPheDuyet: getVal(['quyết định','qđ']),
-                  congBo: getVal(['công bố']), camMoc: getVal(['cắm mốc']), keHoach: getVal(['kế hoạch']),
-                  file: getVal(['file','đính kèm', 'tài liệu']), mapLink: getVal(['bản đồ','link']),
-                  tinhHinhGuiHoSo: getVal(['gửi hồ sơ','sxd']), ghiChu: getVal(['ghi chú'])
-                };
-                if (item.huyen && item.xa) recordsToSave.push(item);
-              } else if (type === 'LIENHE') {
-                let donVi = getVal(['đơn vị', 'đơn vi', 'huyện', 'xã', 'phường']);
-                if (donVi) lastDonVi = donVi; else donVi = lastDonVi;
-
-                const hoTen = getVal(['họ và tên', 'họ tên', 'tên']);
-                const dienThoai = getVal(['điện thoại', 'sđt', 'sdt']);
-                const chucDanh = getVal(['chức danh', 'chức vụ']);
-                const email = getVal(['email', 'thư']);
-
-                if (hoTen || dienThoai) {
-                  recordsToSave.push({ id: Date.now().toString() + i, donVi, hoTen, dienThoai, chucDanh, email });
-                }
-              } else if (type === 'SAPNHAP') {
-                let tinh = getVal(['tỉnh']);
-                let huyen = getVal(['huyện', 'thị xã', 'thành phố']);
-                if (tinh) lastTinh = tinh; else tinh = lastTinh;
-                if (huyen) lastHuyen = huyen; else huyen = lastHuyen;
-
-                const xaMoi = getVal(['xã mới', 'phường mới', 'tên xã']);
-                let cacXaCuStr = getVal(['xã cũ', 'phường cũ', 'thị trấn cũ', 'bị sáp nhập']);
-                const canCu = getVal(['căn cứ', 'pháp lý']) || 'Nghị quyết 1664/NQ-UBTVQH15';
-
-                if (xaMoi) {
-                  const cacXaCu = cacXaCuStr ? cacXaCuStr.split(/[,;]/).map(s => s.trim()).filter(Boolean) : [];
-                  recordsToSave.push({ id: Date.now().toString() + i, tinhCu: tinh, huyen, xaMoi, cacXaCu, canCu });
-                }
-              }
-            }
-
-            if (recordsToSave.length === 0) return showNotification('Không tìm thấy dữ liệu hợp lệ trong file CSV!');
-
-            openConfirm('Xác nhận Nạp dữ liệu', `Hệ thống tìm thấy ${recordsToSave.length} dòng hợp lệ. Dữ liệu cũ sẽ bị XÓA và nạp lại bằng dữ liệu mới. Xác nhận?`, () => {
-              closeConfirm();
-              setShowDbModal(false);
-              if (type === 'CHUNG') setData(recordsToSave);
-              else if (type === 'CHITIET') setDetailData(recordsToSave);
-              else if (type === 'LIENHE') setContactData(recordsToSave);
-              else if (type === 'SAPNHAP') setMergedData(recordsToSave);
-              showNotification(`Đã nạp thành công ${recordsToSave.length} dòng!`);
-            });
-          } catch (error) {
-            showNotification('Lỗi đọc file: ' + error.message);
-          }
-        };
-        reader.readAsText(file, "UTF-8");
-        e.target.value = '';
-      };
-
       // AUTHENTICATION LOGIC
       const handleLogin = (e) => {
         e.preventDefault();
@@ -798,7 +711,7 @@
         setRecoveryPhone('');
         setRecoveryOTP('');
         setNewRecoveryPass('');
-        showNotification('Đã đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
+        showNotification('Đặt lại mật khẩu thành công! Vui lòng đăng nhập.');
       };
 
       // RECORD MODAL HANDLERS (CRUD)
@@ -960,14 +873,14 @@
         if (!reportFile) return showNotification('Vui lòng tải lên file mẫu hoặc đề cương báo cáo (PDF/DOCX)!');
         setReportProgress(10);
         setReportStatus('Đang đọc cấu trúc file báo cáo...');
-        setTimeout(() => { setReportProgress(35); setReportStatus('Đang nhận diện các trường dữ liệu trống...'); }, 1000);
-        setTimeout(() => { setReportProgress(65); setReportStatus('Đang truy xuất CSDL Quy hoạch để tổng hợp số liệu...'); }, 2500);
-        setTimeout(() => { setReportProgress(90); setReportStatus('Đang điền số liệu và định dạng lại văn bản...'); }, 4000);
+        setTimeout(() => { setReportProgress(35); setReportStatus('Đang nhận diện các trường dữ liệu trống...'); }, 800);
+        setTimeout(() => { setReportProgress(65); setReportStatus('Đang truy xuất CSDL Quy hoạch để tổng hợp số liệu...'); }, 1800);
+        setTimeout(() => { setReportProgress(90); setReportStatus('Đang điền số liệu và định dạng lại văn bản...'); }, 2800);
         setTimeout(() => {
           setReportProgress(100);
           setReportStatus('Hoàn tất!');
-          setTimeout(() => setShowGeneratedReport(true), 500);
-        }, 5000);
+          setTimeout(() => setShowGeneratedReport(true), 400);
+        }, 3600);
       };
 
       // FILTERED DATASETS
@@ -1049,7 +962,7 @@
         <div className="h-screen w-full bg-slate-100 font-sans text-slate-800 flex flex-col overflow-hidden relative">
           {/* NOTIFICATION TOAST */}
           {notification && (
-            <div className="absolute bottom-4 right-4 bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-2 z-[999999]">
+            <div className="absolute bottom-4 right-4 bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-2 z-[99999]">
               <CheckCircle className="w-5 h-5" />
               <span className="font-medium text-sm">{notification}</span>
             </div>
@@ -1162,7 +1075,7 @@
                   <div key={khuVuc} className="mb-4 shrink-0">
                     <h3 className="text-lg font-bold text-slate-700 mb-4 pl-2 border-l-4 border-purple-500 uppercase">Khu vực Tỉnh {khuVuc} (Cũ)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {detailedStats[khuVuc].map((dist, idx) => {
+                      {(detailedStats[khuVuc] || []).map((dist, idx) => {
                         const percent = dist.total > 0 ? Math.round((dist.approved / dist.total) * 100) : 0;
                         return (
                           <div key={idx} className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
@@ -1401,194 +1314,285 @@
               </div>
             )}
           </main>
-        </div>
 
-        {/* MODAL SECTION */}
-        {showLoginModal && !showForgotPassModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in">
-              <div className="bg-blue-800 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Lock className="w-5 h-5"/> Đăng nhập Quản trị</h3><button onClick={() => setShowLoginModal(false)} className="hover:bg-blue-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
-              <form onSubmit={handleLogin} className="p-6 flex flex-col gap-4">
-                {loginError && <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium">{loginError}</div>}
-                <div><label className="block text-sm font-semibold mb-1">Tài khoản</label><input type="text" value={loginForm.username} onChange={e=>setLoginForm(p=>({...p, username: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin" required autoFocus /></div>
-                <div><label className="block text-sm font-semibold mb-1">Mật khẩu</label><input type="password" value={loginForm.password} onChange={e=>setLoginForm(p=>({...p, password: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="123456" required /></div>
-                <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded shadow-sm transition-colors">Đăng nhập</button>
-                <button type="button" onClick={() => {setShowLoginModal(false); setShowForgotPassModal(true); setForgotPassStep(1); setRecoveryPhone(''); setRecoveryOTP(''); setNewRecoveryPass(''); setRecoveryError('');}} className="text-sm text-blue-600 hover:underline mt-1 text-right">Quên mật khẩu?</button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {showForgotPassModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in">
-              <div className="bg-blue-600 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><ShieldCheck className="w-5 h-5"/> Khôi phục tài khoản</h3><button onClick={() => { setShowForgotPassModal(false); setShowLoginModal(true); }} className="hover:bg-blue-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
-              <div className="p-6 flex flex-col gap-4">
-                {recoveryError && <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium">{recoveryError}</div>}
-                {forgotPassStep === 1 && (
-                  <form onSubmit={handleSendOTP} className="flex flex-col gap-4">
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">Vui lòng nhập Zalo hoặc Email đăng ký để nhận mã OTP khôi phục.</div>
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">SĐT Zalo hoặc Email đăng ký</label>
-                      <div className="relative">
-                        <Smartphone className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
-                        <input type="text" value={recoveryPhone} onChange={e=>setRecoveryPhone(e.target.value)} className="w-full border px-3 py-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700" placeholder="VD: 0385118757 hoặc dangvinhtoi@gmail.com" required autoFocus />
-                      </div>
-                    </div>
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition-colors shadow-sm">Gửi mã OTP xác thực</button>
-                  </form>
-                )}
-                {forgotPassStep === 2 && (
-                  <form onSubmit={handleVerifyOTP} className="flex flex-col gap-4">
-                    <div className="text-sm text-emerald-700 bg-emerald-50 p-3 rounded border border-emerald-200">Mã xác thực đã được gửi đến: <br/><b>{recoveryPhone}</b>. Vui lòng kiểm tra tin nhắn/thông báo.</div>
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Nhập mã OTP (6 số ngẫu nhiên)</label>
-                      <input type="text" value={recoveryOTP} onChange={e=>setRecoveryOTP(e.target.value)} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none font-bold text-center tracking-widest text-lg text-slate-800" placeholder="------" maxLength={6} required autoFocus />
-                    </div>
-                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition-colors shadow-sm">Xác nhận mã</button>
-                    <button type="button" onClick={() => setForgotPassStep(1)} className="text-sm text-slate-500 hover:text-blue-600 mt-2 text-center">Đổi số Zalo / Email khác</button>
-                  </form>
-                )}
-                {forgotPassStep === 3 && (
-                  <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
-                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">Xác thực OTP thành công. Vui lòng thiết lập lại mật khẩu mới cho tài khoản quản trị.</div>
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Mật khẩu mới</label>
-                      <input type="password" value={newRecoveryPass} onChange={e=>setNewRecoveryPass(e.target.value)} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập mật khẩu mới..." minLength={6} required autoFocus />
-                    </div>
-                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded transition-colors shadow-sm">Lưu mật khẩu & Đăng nhập</button>
-                  </form>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showChangePassModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in"><div className="bg-amber-600 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Key className="w-5 h-5"/> Đổi mật khẩu quản trị</h3><button onClick={() => setShowChangePassModal(false)} className="hover:bg-amber-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div><form onSubmit={handleChangePassword} className="p-6 flex flex-col gap-4">{changePassError && <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium">{changePassError}</div>}<div><label className="block text-sm font-semibold mb-1">Mật khẩu hiện tại</label><input type="password" value={changePassForm.current} onChange={e=>setChangePassForm(p=>({...p, current: e.target.value}))} className="w-full border px-3 py-2 rounded" placeholder="Nhập mật khẩu cũ..." required /></div><div><label className="block text-sm font-semibold mb-1">Mật khẩu mới</label><input type="password" value={changePassForm.newPass} onChange={e=>setChangePassForm(p=>({...p, newPass: e.target.value}))} className="w-full border px-3 py-2 rounded" placeholder="Nhập mật khẩu mới..." required /></div><div><label className="block text-sm font-semibold mb-1">Xác nhận mật khẩu mới</label><input type="password" value={changePassForm.confirm} onChange={e=>setChangePassForm(p=>({...p, confirm: e.target.value}))} className="w-full border px-3 py-2 rounded" placeholder="Nhập lại mật khẩu mới..." required /></div><button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 rounded shadow-sm transition-colors mt-2">Lưu thay đổi</button></form></div></div>
-        )}
-
-        {showDbModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in"><div className="bg-indigo-700 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Database className="w-5 h-5"/> Quản lý Dữ liệu Đám mây</h3><button onClick={() => setShowDbModal(false)} className="hover:bg-indigo-600 p-1 rounded-full"><X className="w-5 h-5"/></button></div><div className="p-6 flex flex-col gap-4">
-            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-4 mb-2">
-              <h4 className="font-bold text-indigo-900 text-sm mb-2 flex items-center gap-2">Mã phiên bản Server hiện tại:</h4>
-              <code className="text-xs font-mono bg-white px-2 py-1 rounded border border-indigo-200 text-slate-600 break-all select-all block">{appId}</code>
-              <p className="text-xs text-slate-500 mt-2 italic">Mỗi đường link chia sẻ sẽ có một mã Server khác nhau để bảo mật. Hãy dùng chức năng Backup/Restore để chuyển dữ liệu qua lại giữa các đường link.</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <button type="button" onClick={handleResetToDefaultDB} className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg shadow-sm transition-colors"><RefreshCcw className="w-5 h-5"/> Khôi phục CSDL Gốc</button>
-              <div className="border-t border-slate-200 my-1"></div>
-              <button onClick={handleExportDB} className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold py-3 rounded-lg shadow-sm transition-colors"><Download className="w-5 h-5 text-blue-600"/> Tải xuống bản sao lưu (.json)</button>
-              <div className="relative">
-                <input type="file" accept=".json" onChange={handleImportDB} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                <button type="button" className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-sm transition-colors"><Upload className="w-5 h-5"/> Phục hồi từ file (.json)</button>
-              </div>
-            </div>
-            <div className="border-t border-slate-200 my-1"></div>
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-              <h4 className="font-bold text-slate-800 text-sm mb-1">Nạp dữ liệu từ file Excel (.CSV)</h4>
-              <p className="text-xs text-slate-500 mb-3">Hệ thống tự động dò cột tiêu đề để nạp. <b>Lưu ý: Dữ liệu cũ sẽ bị xóa khi nạp.</b></p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="relative"><input type="file" accept=".csv" onChange={(e)=>handleImportCSV(e,'CHUNG')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><button className="w-full flex items-center justify-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 rounded-lg text-xs border border-blue-200"><Upload className="w-3 h-3"/> CSV QH Chung</button></div>
-                <div className="relative"><input type="file" accept=".csv" onChange={(e)=>handleImportCSV(e,'CHITIET')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><button className="w-full flex items-center justify-center gap-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold py-2 rounded-lg text-xs border border-indigo-200"><Upload className="w-3 h-3"/> CSV QH Chi tiết</button></div>
-                <div className="relative"><input type="file" accept=".csv" onChange={(e)=>handleImportCSV(e,'SAPNHAP')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><button className="w-full flex items-center justify-center gap-2 bg-amber-100 hover:bg-amber-200 text-amber-700 font-bold py-2 rounded-lg text-xs border border-amber-200"><Upload className="w-3 h-3"/> CSV Sáp nhập</button></div>
-                <div className="relative"><input type="file" accept=".csv" onChange={(e)=>handleImportCSV(e,'LIENHE')} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><button className="w-full flex items-center justify-center gap-2 bg-cyan-100 hover:bg-cyan-200 text-cyan-700 font-bold py-2 rounded-lg text-xs border border-cyan-200"><Upload className="w-3 h-3"/> CSV Danh bạ</button></div>
-              </div>
-            </div>
-          </div></div></div>
-        )}
-
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-[99999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col animate-in fade-in zoom-in"><div className={`flex justify-between items-center p-4 border-b rounded-t-xl shrink-0 ${editingRecord?._isDetail ? 'bg-indigo-50' : 'bg-slate-50'}`}><h3 className={`font-bold uppercase ${editingRecord?._isDetail ? 'text-indigo-800' : 'text-slate-800'}`}>{editingRecord?.id ? `Cập nhật: ${editingRecord.xa}` : `Thêm mới ${editingRecord?._isDetail ? 'QH chi tiết' : 'QH chung'}`}</h3><button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-full shadow-sm"><X className="h-5 w-5" /></button></div><div className="overflow-y-auto p-4 md:p-6 bg-slate-50/50 flex-1 custom-scrollbar"><form id="qh-form" onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 bg-white p-5 rounded-xl border">
-            <div className="col-span-full pb-1 border-b-2 border-blue-100"><h4 className="text-sm font-bold text-blue-800">I. THÔNG TIN HÀNH CHÍNH</h4></div>
-            <div><label className="block text-xs font-semibold mb-1">Tỉnh mới <span className="text-red-500">*</span></label><input type="text" value={formData.tinhMoi || ''} onChange={(e) => setFormData(prev => ({...prev, tinhMoi: e.target.value}))} className="w-full px-3 py-2 border rounded bg-slate-50 text-sm" required readOnly/></div>
-            <div><label className="block text-xs font-semibold mb-1">Huyện/Thị xã/Thành phố <span className="text-red-500">*</span></label><select value={formData.huyen || ''} onChange={(e) => {let p=''; OLD_REGIONS.forEach(prov=>prov.districts.forEach(d=>{if(d.name===e.target.value) p=prov.province;})); setFormData(prev => ({...prev, huyen: e.target.value, tinhCu: p}));}} className="w-full px-3 py-2 border rounded text-sm" required><option value="" disabled>-- Chọn --</option>{OLD_REGIONS.map(prov => (<optgroup key={prov.province} label={`Tỉnh ${prov.province}`}><>{prov.districts.map(dist => <option key={dist.name} value={dist.name}>{dist.name}</option>)}</></optgroup>))}</select></div>
-            <div><label className="block text-xs font-semibold mb-1">Tỉnh cũ</label><input type="text" value={formData.tinhCu || ''} className="w-full px-3 py-2 border rounded bg-slate-50 text-sm font-semibold" readOnly /></div>
-            <div><label className="block text-xs font-semibold mb-1">Xã/Phường <span className="text-red-500">*</span></label><input type="text" value={formData.xa || ''} onChange={(e) => setFormData(prev => ({...prev, xa: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" required /></div>
-            <div className="col-span-full pb-1 mt-2 border-b-2 border-blue-100"><h4 className="text-sm font-bold text-blue-800">II. THÔNG TIN ĐỒ ÁN</h4></div>
-            <div className="col-span-full xl:col-span-2"><label className="block text-xs font-semibold mb-1">Tên đồ án <span className="text-red-500">*</span></label><input type="text" value={formData.tenQh || ''} onChange={(e) => setFormData(prev => ({...prev, tenQh: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm font-medium" required /></div>
-            <div><label className="block text-xs font-semibold mb-1">Diện tích (ha)</label><input type="text" value={formData.dienTich || ''} onChange={(e) => setFormData(prev => ({...prev, dienTich: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">{editingRecord?._isDetail ? 'Dân số' : 'Dân số (2025/2035/2045)'}</label><input type="text" value={formData.danSo || ''} onChange={(e) => setFormData(prev => ({...prev, danSo: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div className="col-span-full pb-1 mt-2 border-b-2 border-amber-100"><h4 className="text-sm font-bold text-amber-700">III. TIẾN ĐỘ PHÁP LÝ</h4></div>
-            <div><label className="block text-xs font-semibold mb-1">CQ tổ chức lập</label><input type="text" value={formData.cqToChuc || ''} onChange={(e) => setFormData(prev => ({...prev, cqToChuc: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">CQ thẩm định</label><input type="text" value={formData.cqThamDinh || ''} onChange={(e) => setFormData(prev => ({...prev, cqThamDinh: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">Báo cáo thẩm định</label><input type="text" value={formData.bcThamDinh || ''} onChange={(e) => setFormData(prev => ({...prev, bcThamDinh: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">Ý kiến Sở Xây dựng</label><input type="text" value={formData.yKienSxd || ''} onChange={(e) => setFormData(prev => ({...prev, yKienSxd: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">CQ phê duyệt</label><input type="text" value={formData.cqPheDuyet || ''} onChange={(e) => setFormData(prev => ({...prev, cqPheDuyet: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm bg-amber-50" /></div>
-            <div className="col-span-1 xl:col-span-3"><label className="block text-xs font-semibold mb-1">QĐ Phê duyệt (Số/Ngày)</label><input type="text" value={formData.qdPheDuyet || ''} onChange={(e) => setFormData(prev => ({...prev, qdPheDuyet: e.target.value}))} className="w-full px-3 py-2 border-emerald-400 rounded text-sm bg-emerald-50 font-bold text-emerald-700" /></div>
-            <div className="col-span-full pb-1 mt-2 border-b-2 border-emerald-100"><h4 className="text-sm font-bold text-emerald-700">IV. THỰC HIỆN & KHÁC</h4></div>
-            <div><label className="block text-xs font-semibold mb-1">Công bố</label><select value={formData.congBo || 'Chưa công bố'} onChange={(e) => setFormData(prev => ({...prev, congBo: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm"><option value="Chưa công bố">Chưa công bố</option><option value="Đã công bố">Đã công bố</option></select></div>
-            <div><label className="block text-xs font-semibold mb-1">Cắm mốc</label><select value={formData.camMoc || 'Chưa cắm mốc'} onChange={(e) => setFormData(prev => ({...prev, camMoc: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm"><option value="Chưa cắm mốc">Chưa cắm mốc</option><option value="Đã cắm mốc">Đã cắm mốc</option></select></div>
-            <div><label className="block text-xs font-semibold mb-1">Kế hoạch thực hiện</label><input type="text" value={formData.keHoach || ''} onChange={(e) => setFormData(prev => ({...prev, keHoach: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">Link tài liệu (Đính kèm)</label><input type="text" value={formData.file || ''} onChange={(e) => setFormData(prev => ({...prev, file: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" placeholder="Dán link Drive, OneDrive..." /></div>
-            <div><label className="block text-xs font-semibold mb-1">Link Bản đồ</label><input type="text" value={formData.mapLink || ''} onChange={(e) => setFormData(prev => ({...prev, mapLink: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div className="col-span-full xl:col-span-3"><label className="block text-xs font-semibold mb-1">Gửi hồ sơ về SXD</label><select value={formData.tinhHinhGuiHoSo || 'Chưa gửi'} onChange={(e) => setFormData(prev => ({...prev, tinhHinhGuiHoSo: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm"><option value="Chưa gửi">Chưa gửi Sở XD</option><option value="Đã gửi">Đã gửi Sở XD</option></select></div>
-            <div className="col-span-full"><label className="block text-xs font-semibold mb-1">Ghi chú</label><textarea rows="2" value={formData.ghiChu || ''} onChange={(e) => setFormData(prev => ({...prev, ghiChu: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm"></textarea></div>
-          </form></div>
-          <div className="p-4 border-t bg-slate-100 flex justify-end gap-3 rounded-b-xl shrink-0"><button onClick={() => setIsModalOpen(false)} className="px-5 py-2 text-sm bg-white border rounded font-semibold">Hủy bỏ</button><button type="submit" form="qh-form" className={`px-6 py-2 text-sm text-white rounded font-semibold flex items-center gap-2 ${editingRecord?._isDetail ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-blue-600 hover:bg-blue-700'}`}><Plus className="h-4 w-4" /> {editingRecord?.id ? 'Lưu' : 'Thêm'}</button></div>
-        </div></div>
-        )}
-
-        {isMergeModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-[99999]">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col animate-in fade-in zoom-in">
-              <div className="flex justify-between items-center p-4 border-b bg-amber-50 rounded-t-xl shrink-0">
-                <h3 className="font-bold text-amber-800 uppercase">{editingMergeRecord ? `Cập nhật sáp nhập` : 'Thêm mới dữ liệu sáp nhập'}</h3>
-                <button onClick={() => setIsMergeModalOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-full shadow-sm"><X className="h-5 w-5" /></button>
-              </div>
-              <div className="overflow-y-auto p-4 md:p-6 bg-slate-50/50 flex-1 custom-scrollbar">
-                <form id="merge-form" onSubmit={handleSaveMerge} className="grid grid-cols-1 gap-4 bg-white p-5 rounded-xl border shadow-sm">
-                  <div><label className="block text-xs font-semibold mb-1">Tỉnh cũ</label><select value={mergeFormData.tinhCu || ''} onChange={(e) => setMergeFormData(prev => ({...prev, tinhCu: e.target.value}))} className="w-full px-3 py-2 border rounded font-medium text-sm"><option value="Bình Định">Bình Định</option><option value="Gia Lai">Gia Lai</option></select></div>
-                  <div><label className="block text-xs font-semibold mb-1">Huyện/Thị xã</label><input type="text" value={mergeFormData.huyen || ''} onChange={(e) => setMergeFormData(prev => ({...prev, huyen: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" required placeholder="Vd: Huyện Tuy Phước" /></div>
-                  <div><label className="block text-xs font-semibold mb-1">Tên Xã/Phường MỚI</label><input type="text" value={mergeFormData.xaMoi || ''} onChange={(e) => setMergeFormData(prev => ({...prev, xaMoi: e.target.value}))} className="w-full px-3 py-2 border rounded font-bold text-emerald-700 text-sm" required placeholder="Vd: Xã Tuy Phước" /></div>
-                  <div><label className="block text-xs font-semibold mb-1">Các Xã/Phường/Thị trấn CŨ (Ngăn cách bằng dấu phẩy)</label><textarea rows="3" value={mergeFormData.cacXaCuStr || ''} onChange={(e) => setMergeFormData(prev => ({...prev, cacXaCuStr: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" placeholder="Vd: Thị trấn Diêu Trì, Thị trấn Tuy Phước..." required /></div>
-                  <div><label className="block text-xs font-semibold mb-1">Căn cứ pháp lý</label><input type="text" value={mergeFormData.canCu || ''} onChange={(e) => setMergeFormData(prev => ({...prev, canCu: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" required /></div>
+          {/* MODALS SECTION */}
+          {/* LOGIN MODAL */}
+          {showLoginModal && !showForgotPassModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in">
+                <div className="bg-blue-800 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Lock className="w-5 h-5"/> Đăng nhập Quản trị</h3><button onClick={() => setShowLoginModal(false)} className="hover:bg-blue-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <form onSubmit={handleLogin} className="p-6 flex flex-col gap-4">
+                  {loginError && <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium">{loginError}</div>}
+                  <div><label className="block text-sm font-semibold mb-1">Tài khoản</label><input type="text" value={loginForm.username} onChange={e=>setLoginForm(p=>({...p, username: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin" required autoFocus /></div>
+                  <div><label className="block text-sm font-semibold mb-1">Mật khẩu</label><input type="password" value={loginForm.password} onChange={e=>setLoginForm(p=>({...p, password: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="123456" required /></div>
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded shadow-sm transition-colors">Đăng nhập</button>
+                  <button type="button" onClick={() => {setShowLoginModal(false); setShowForgotPassModal(true); setForgotPassStep(1); setRecoveryPhone(''); setRecoveryOTP(''); setNewRecoveryPass(''); setRecoveryError('');}} className="text-sm text-blue-600 hover:underline mt-1 text-right">Quên mật khẩu?</button>
                 </form>
               </div>
-              <div className="p-4 border-t bg-slate-100 flex justify-end gap-3 rounded-b-xl shrink-0">
-                <button type="button" onClick={() => setIsMergeModalOpen(false)} className="px-5 py-2 text-sm bg-white border rounded font-semibold">Hủy bỏ</button>
-                <button type="submit" form="merge-form" className="px-6 py-2 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {editingMergeRecord ? 'Lưu' : 'Thêm'}</button>
+            </div>
+          )}
+
+          {/* FORGOT PASSWORD MODAL */}
+          {showForgotPassModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in">
+                <div className="bg-blue-600 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><ShieldCheck className="w-5 h-5"/> Khôi phục tài khoản</h3><button onClick={() => { setShowForgotPassModal(false); setShowLoginModal(true); }} className="hover:bg-blue-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <div className="p-6 flex flex-col gap-4">
+                  {recoveryError && <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium">{recoveryError}</div>}
+                  {forgotPassStep === 1 && (
+                    <form onSubmit={handleSendOTP} className="flex flex-col gap-4">
+                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">Vui lòng nhập Zalo hoặc Email đăng ký để nhận mã OTP khôi phục.</div>
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">SĐT Zalo hoặc Email đăng ký</label>
+                        <div className="relative">
+                          <Smartphone className="absolute left-3 top-2.5 h-5 w-5 text-slate-400" />
+                          <input type="text" value={recoveryPhone} onChange={e=>setRecoveryPhone(e.target.value)} className="w-full border px-3 py-2 pl-10 rounded focus:ring-2 focus:ring-blue-500 outline-none font-semibold text-slate-700" placeholder="VD: 0385118757 hoặc dangvinhtoi@gmail.com" required autoFocus />
+                        </div>
+                      </div>
+                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition-colors shadow-sm">Gửi mã OTP xác thực</button>
+                    </form>
+                  )}
+                  {forgotPassStep === 2 && (
+                    <form onSubmit={handleVerifyOTP} className="flex flex-col gap-4">
+                      <div className="text-sm text-emerald-700 bg-emerald-50 p-3 rounded border border-emerald-200">Mã xác thực đã được gửi đến: <br/><b>{recoveryPhone}</b>. Vui lòng kiểm tra tin nhắn/thông báo.</div>
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">Nhập mã OTP (6 số ngẫu nhiên)</label>
+                        <input type="text" value={recoveryOTP} onChange={e=>setRecoveryOTP(e.target.value)} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none font-bold text-center tracking-widest text-lg text-slate-800" placeholder="------" maxLength={6} required autoFocus />
+                      </div>
+                      <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded transition-colors shadow-sm">Xác nhận mã</button>
+                      <button type="button" onClick={() => setForgotPassStep(1)} className="text-sm text-slate-500 hover:text-blue-600 mt-2 text-center">Đổi số Zalo / Email khác</button>
+                    </form>
+                  )}
+                  {forgotPassStep === 3 && (
+                    <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
+                      <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded border">Xác thực OTP thành công. Vui lòng thiết lập lại mật khẩu mới cho tài khoản quản trị.</div>
+                      <div>
+                        <label className="block text-sm font-semibold mb-1">Mật khẩu mới</label>
+                        <input type="password" value={newRecoveryPass} onChange={e=>setNewRecoveryPass(e.target.value)} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nhập mật khẩu mới..." minLength={6} required autoFocus />
+                      </div>
+                      <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded transition-colors shadow-sm">Cập nhật Mật khẩu mới</button>
+                    </form>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {isContactModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-[99999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col animate-in fade-in zoom-in"><div className="flex justify-between items-center p-4 border-b bg-cyan-50 rounded-t-xl shrink-0"><h3 className="font-bold text-cyan-800 uppercase">{editingContactRecord ? 'Cập nhật liên hệ' : 'Thêm mới liên hệ'}</h3><button onClick={() => setIsContactModalOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-full"><X className="h-5 w-5" /></button></div><div className="p-4 md:p-6"><form id="contact-form" onSubmit={handleSaveContact} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-xl border">
-            <div className="col-span-full"><label className="block text-xs font-semibold mb-1">Đơn vị (Huyện/Xã) <span className="text-red-500">*</span></label><input type="text" value={contactFormData.donVi || ''} onChange={e => setContactFormData(prev => ({...prev, donVi: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" required /></div>
-            <div><label className="block text-xs font-semibold mb-1">Họ và tên <span className="text-red-500">*</span></label><input type="text" value={contactFormData.hoTen || ''} onChange={e => setContactFormData(prev => ({...prev, hoTen: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm font-bold text-cyan-800" required /></div>
-            <div><label className="block text-xs font-semibold mb-1">Điện thoại</label><input type="text" value={contactFormData.dienThoai || ''} onChange={e => setContactFormData(prev => ({...prev, dienThoai: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">Chức danh</label><input type="text" value={contactFormData.chucDanh || ''} onChange={e => setContactFormData(prev => ({...prev, chucDanh: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-            <div><label className="block text-xs font-semibold mb-1">Email</label><input type="email" value={contactFormData.email || ''} onChange={e => setContactFormData(prev => ({...prev, email: e.target.value}))} className="w-full px-3 py-2 border rounded text-sm" /></div>
-          </form></div><div className="p-4 border-t bg-slate-100 flex justify-end gap-3 rounded-b-xl"><button onClick={() => setIsContactModalOpen(false)} className="px-5 py-2 text-sm bg-white border rounded font-semibold">Hủy bỏ</button><button type="submit" form="contact-form" className="px-6 py-2 text-sm bg-cyan-600 text-white rounded font-semibold"><Plus className="h-4 w-4 inline mr-1" /> {editingContactRecord ? 'Lưu' : 'Thêm'}</button></div></div></div>
-        )}
+          {/* CHANGE PASSWORD MODAL */}
+          {showChangePassModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in">
+                <div className="bg-amber-600 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Key className="w-5 h-5"/> Đổi mật khẩu Quản trị</h3><button onClick={() => setShowChangePassModal(false)} className="hover:bg-amber-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <form onSubmit={handleChangePassword} className="p-6 flex flex-col gap-4">
+                  {changePassError && <div className="bg-red-50 text-red-600 p-3 rounded text-sm font-medium">{changePassError}</div>}
+                  <div><label className="block text-sm font-semibold mb-1">Mật khẩu hiện tại</label><input type="password" value={changePassForm.current} onChange={e=>setChangePassForm(p=>({...p, current: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-amber-500 outline-none" required autoFocus /></div>
+                  <div><label className="block text-sm font-semibold mb-1">Mật khẩu mới (từ 6 ký tự)</label><input type="password" value={changePassForm.newPass} onChange={e=>setChangePassForm(p=>({...p, newPass: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-amber-500 outline-none" minLength={6} required /></div>
+                  <div><label className="block text-sm font-semibold mb-1">Xác nhận mật khẩu mới</label><input type="password" value={changePassForm.confirm} onChange={e=>setChangePassForm(p=>({...p, confirm: e.target.value}))} className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-amber-500 outline-none" minLength={6} required /></div>
+                  <button type="submit" className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded shadow-sm transition-colors">Lưu thay đổi</button>
+                </form>
+              </div>
+            </div>
+          )}
 
-        {isReviewModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-[99999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[95vh] flex flex-col animate-in fade-in zoom-in"><div className="flex justify-between items-center p-4 border-b bg-rose-50 rounded-t-xl shrink-0"><h3 className="font-bold text-rose-800 uppercase">{editingReviewRecord ? 'Cập nhật Nội dung Rà soát' : 'Thêm mới Nội dung Rà soát'}</h3><button onClick={() => setIsReviewModalOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-full shadow-sm"><X className="h-5 w-5" /></button></div><div className="overflow-y-auto p-4 md:p-6 bg-slate-50/50 flex-1 custom-scrollbar"><form id="review-form" onSubmit={handleSaveReview} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-xl border shadow-sm">
-            <div><label className="block text-xs font-semibold mb-1">Tỉnh cũ</label><select value={reviewFormData.tinhCu || 'Gia Lai'} onChange={e => setReviewFormData(prev => ({...prev, tinhCu: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 font-medium text-sm"><option value="Bình Định">Bình Định</option><option value="Gia Lai">Gia Lai</option></select></div>
-            <div><label className="block text-xs font-semibold mb-1">Huyện/Thị xã cũ <span className="text-red-500">*</span></label><input type="text" value={reviewFormData.huyen || ''} onChange={e => setReviewFormData(prev => ({...prev, huyen: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 text-sm" required placeholder="Vd: Huyện Đak Đoa" /></div>
-            <div className="col-span-full"><label className="block text-xs font-semibold mb-1">Nội dung định hướng phát triển <span className="text-red-500">*</span></label><textarea rows="3" value={reviewFormData.noiDung || ''} onChange={e => setReviewFormData(prev => ({...prev, noiDung: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 text-sm font-semibold text-rose-800" required placeholder="Nhập nội dung rà soát..."></textarea></div>
-            <div><label className="block text-xs font-semibold mb-1">Đơn vị phụ trách</label><input type="text" value={reviewFormData.coQuan || ''} onChange={e => setReviewFormData(prev => ({...prev, coQuan: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 text-sm" placeholder="Vd: Sở Xây dựng, UBND Huyện..." /></div>
-            <div><label className="block text-xs font-semibold mb-1">Trạng thái rà soát</label><select value={reviewFormData.trangThai || 'Chưa rà soát'} onChange={e => setReviewFormData(prev => ({...prev, trangThai: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 font-medium text-sm"><option value="Chưa rà soát">Chưa rà soát</option><option value="Đang rà soát">Đang rà soát</option><option value="Đã hoàn thành">Đã hoàn thành</option></select></div>
-            <div><label className="block text-xs font-semibold mb-1">Link tài liệu (Đính kèm)</label><input type="text" value={reviewFormData.file || ''} onChange={e => setReviewFormData(prev => ({...prev, file: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 text-sm" placeholder="Dán link Drive, OneDrive..." /></div>
-            <div className="col-span-full"><label className="block text-xs font-semibold mb-1">Ghi chú</label><textarea rows="2" value={reviewFormData.ghiChu || ''} onChange={e => setReviewFormData(prev => ({...prev, ghiChu: e.target.value}))} className="w-full px-3 py-2 border rounded focus:ring-rose-500 text-sm"></textarea></div>
-          </form></div><div className="p-4 border-t bg-slate-100 flex justify-end gap-3 rounded-b-xl shrink-0"><button type="button" onClick={() => setIsReviewModalOpen(false)} className="px-5 py-2 text-sm bg-white border rounded font-semibold">Hủy bỏ</button><button type="submit" form="review-form" className="px-6 py-2 text-sm bg-rose-600 text-white rounded font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> {editingReviewRecord ? 'Lưu' : 'Thêm'}</button></div></div></div>
-        )}
+          {/* DATABASE MANAGEMENT MODAL */}
+          {showDbModal && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in">
+                <div className="bg-indigo-800 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Database className="w-5 h-5"/> Quản lý CSDL Đám mây & Sao lưu</h3><button onClick={() => setShowDbModal(false)} className="hover:bg-indigo-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <div className="p-6 flex flex-col gap-6">
+                  <div className="border rounded-xl p-4 bg-slate-50 flex flex-col gap-3">
+                    <h4 className="font-bold text-slate-800 flex items-center gap-2"><Download className="w-4 h-4 text-indigo-600"/> Sao lưu CSDL (.JSON)</h4>
+                    <p className="text-xs text-slate-500">Tải xuống bản sao lưu toàn bộ dữ liệu 7 tab để lưu trữ an toàn.</p>
+                    <button onClick={handleExportDB} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"><Download className="w-4 h-4"/> Tải bản sao lưu JSON</button>
+                  </div>
+                  <div className="border rounded-xl p-4 bg-slate-50 flex flex-col gap-3">
+                    <h4 className="font-bold text-slate-800 flex items-center gap-2"><Upload className="w-4 h-4 text-indigo-600"/> Phục hồi từ file Sao lưu (.JSON)</h4>
+                    <p className="text-xs text-slate-500">Chọn file JSON sao lưu để ghi đè khôi phục lại dữ liệu hệ thống.</p>
+                    <input type="file" accept=".json" onChange={handleImportDB} className="text-sm border p-2 rounded bg-white" />
+                  </div>
+                  <div className="border border-red-200 rounded-xl p-4 bg-red-50 flex justify-between items-center">
+                    <div>
+                      <h4 className="font-bold text-red-800 flex items-center gap-2"><RefreshCcw className="w-4 h-4 text-red-600"/> Khôi phục CSDL Gốc</h4>
+                      <p className="text-xs text-red-600">Đặt lại toàn bộ dữ liệu về trạng thái ban đầu.</p>
+                    </div>
+                    <button onClick={handleResetToDefaultDB} className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-3 rounded text-xs transition-colors">Reset CSDL</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-        {reportModal.isOpen && !showGeneratedReport && (
-          <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-[99999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in"><div className={`p-4 flex justify-between items-center text-white ${reportModal.type === 'CHUNG' ? 'bg-emerald-600' : 'bg-purple-600'}`}><h3 className="font-bold flex items-center gap-2"><FileText className="w-5 h-5"/> Báo cáo tự động</h3><button onClick={() => setReportModal({isOpen:false,type:''})} className="hover:bg-black/20 p-1.5 rounded-full"><X className="w-5 h-5"/></button></div><div className="p-6"><div className="mb-6 bg-slate-50 p-4 rounded-lg border text-sm text-slate-600"><p>Hệ thống tự động điền số liệu vào <b>File đề cương mẫu (PDF/DOCX)</b> của bạn.</p></div><div className="flex flex-col gap-2 mb-6"><label className="text-sm font-bold text-slate-700">Tải đề cương (PDF/DOCX)</label><div className="border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center bg-slate-50 cursor-pointer relative"><input type="file" accept=".pdf,.doc,.docx" className="absolute inset-0 w-full h-full opacity-0 z-10" onChange={(e) => setReportFile(e.target.files[0])} /><Upload className="w-10 h-10 text-slate-400 mb-3" />{reportFile ? (<div className="text-center"><p className="text-sm font-bold text-blue-600">{reportFile.name}</p></div>) : (<div className="text-center"><p className="text-sm font-bold text-slate-600">Kéo thả hoặc nhấn chọn file</p></div>)}</div></div>
-          {reportProgress > 0 && (<div className="mb-4"><div className="flex justify-between text-xs font-bold text-slate-600 mb-1"><span>{reportStatus}</span><span>{reportProgress}%</span></div><div className="w-full bg-slate-200 rounded-full h-2.5"><div className={`h-2.5 rounded-full ${reportModal.type === 'CHUNG' ? 'bg-emerald-500' : 'bg-purple-500'}`} style={{ width: `${reportProgress}%` }}></div></div></div>)}
-          <button onClick={handleGenerateSmartReport} disabled={reportProgress>0 && reportProgress<100} className={`w-full py-3 rounded-lg text-white font-bold flex items-center justify-center gap-2 ${reportProgress>0 && reportProgress<100 ? 'bg-slate-400 cursor-not-allowed' : (reportModal.type==='CHUNG'?'bg-emerald-600':'bg-purple-600')}`}>{reportProgress>0&&reportProgress<100 ? <RefreshCcw className="w-5 h-5 animate-spin" /> : <ClipboardCheck className="w-5 h-5" />}{reportProgress===0 ? 'Tạo báo cáo' : 'Đang xử lý...'}</button></div></div></div>
-        )}
+          {/* RECORD MODAL (QHC & QHCT) */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div className="bg-blue-800 p-4 flex justify-between items-center text-white shrink-0"><h3 className="font-bold">{editingRecord?.id ? 'Cập nhật hồ sơ' : 'Thêm mới hồ sơ'}</h3><button onClick={() => setIsModalOpen(false)} className="hover:bg-blue-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <form onSubmit={handleSave} className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label className="block text-xs font-bold mb-1">Tỉnh cũ</label><input type="text" value={formData.tinhCu || ''} onChange={e=>setFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                    <div><label className="block text-xs font-bold mb-1">Huyện/Thị xã</label><input type="text" value={formData.huyen || ''} onChange={e=>setFormData(p=>({...p, huyen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                    <div><label className="block text-xs font-bold mb-1">Xã/Phường</label><input type="text" value={formData.xa || ''} onChange={e=>setFormData(p=>({...p, xa: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                    <div><label className="block text-xs font-bold mb-1">Tên Quy hoạch</label><input type="text" value={formData.tenQh || ''} onChange={e=>setFormData(p=>({...p, tenQh: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                    <div><label className="block text-xs font-bold mb-1">Diện tích (ha)</label><input type="text" value={formData.dienTich || ''} onChange={e=>setFormData(p=>({...p, dienTich: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                    <div><label className="block text-xs font-bold mb-1">Dân số</label><input type="text" value={formData.danSo || ''} onChange={e=>setFormData(p=>({...p, danSo: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                    <div><label className="block text-xs font-bold mb-1">Cơ quan tổ chức lập</label><input type="text" value={formData.cqToChuc || ''} onChange={e=>setFormData(p=>({...p, cqToChuc: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                    <div><label className="block text-xs font-bold mb-1">Cơ quan phê duyệt</label><input type="text" value={formData.cqPheDuyet || ''} onChange={e=>setFormData(p=>({...p, cqPheDuyet: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                    <div><label className="block text-xs font-bold mb-1">Quyết định phê duyệt</label><input type="text" value={formData.qdPheDuyet || ''} onChange={e=>setFormData(p=>({...p, qdPheDuyet: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                    <div><label className="block text-xs font-bold mb-1">Tình trạng công bố</label><select value={formData.congBo || 'Chưa công bố'} onChange={e=>setFormData(p=>({...p, congBo: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã công bố">Đã công bố</option><option value="Chưa công bố">Chưa công bố</option></select></div>
+                    <div><label className="block text-xs font-bold mb-1">Tình trạng cắm mốc</label><select value={formData.camMoc || 'Chưa cắm mốc'} onChange={e=>setFormData(p=>({...p, camMoc: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã cắm mốc">Đã cắm mốc</option><option value="Chưa cắm mốc">Chưa cắm mốc</option></select></div>
+                    <div><label className="block text-xs font-bold mb-1">Link File đính kèm</label><input type="text" value={formData.file || ''} onChange={e=>setFormData(p=>({...p, file: e.target.value}))} className="w-full border p-2 rounded text-sm" placeholder="https://..." /></div>
+                    <div><label className="block text-xs font-bold mb-1">Link Bản đồ Google Map</label><input type="text" value={formData.mapLink || ''} onChange={e=>setFormData(p=>({...p, mapLink: e.target.value}))} className="w-full border p-2 rounded text-sm" placeholder="https://maps.google.com/..." /></div>
+                    <div><label className="block text-xs font-bold mb-1">Gửi hồ sơ về Sở XD</label><select value={formData.tinhHinhGuiHoSo || 'Chưa gửi'} onChange={e=>setFormData(p=>({...p, tinhHinhGuiHoSo: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã gửi">Đã gửi</option><option value="Chưa gửi">Chưa gửi</option></select></div>
+                  </div>
+                  <div><label className="block text-xs font-bold mb-1">Ghi chú</label><textarea value={formData.ghiChu || ''} onChange={e=>setFormData(p=>({...p, ghiChu: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={2}></textarea></div>
+                  <div className="flex justify-end gap-3 pt-3 border-t"><button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded text-sm font-medium">Hủy</button><button type="submit" className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-bold">Lưu hồ sơ</button></div>
+                </form>
+              </div>
+            </div>
+          )}
 
-        {showGeneratedReport && (
-          <div className="fixed inset-0 bg-slate-200 flex flex-col z-[99999]"><div className="bg-white px-6 py-3 border-b shadow-sm flex justify-between items-center shrink-0"><h2 className="font-bold">Bản xem trước Báo cáo</h2><div className="flex gap-3"><button onClick={() => { setShowGeneratedReport(false); setReportModal({isOpen:false,type:''}); }} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm">Đóng</button><button onClick={() => window.print()} className={`px-4 py-2 text-white font-semibold rounded-lg text-sm flex items-center gap-2 ${reportModal.type==='CHUNG'?'bg-emerald-600':'bg-purple-600'}`}><Download className="w-4 h-4" /> In PDF</button></div></div><div className="flex-1 overflow-auto p-4 flex justify-center custom-scrollbar print-area"><div className="bg-white w-full max-w-[210mm] min-h-[297mm] shadow-lg p-[20mm] text-slate-900 font-serif text-[14pt] leading-[1.5]"><div className="flex justify-between items-start mb-8 text-center font-bold"><div className="w-[40%]"><p className="text-[13pt] uppercase">SỞ XÂY DỰNG GIA LAI</p><p className="text-[12pt] font-semibold border-b border-black inline-block pb-0.5">PHÒNG QUY HOẠCH KIẾN TRÚC</p></div><div className="w-[60%]"><p className="text-[13pt]">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p><p className="text-[13pt] border-b border-black inline-block pb-0.5">Độc lập - Tự do - Hạnh phúc</p></div></div><div className="text-center mb-10"><p className="text-[16pt] font-bold">BÁO CÁO TIẾN ĐỘ</p><p className="text-[14pt] font-bold uppercase">{reportModal.type === 'CHUNG' ? 'Lập Quy hoạch chung' : 'Phê duyệt Quy hoạch chi tiết 1/500'}</p><p className="italic text-[13pt] mt-1">(Cập nhật đến ngày {new Date().toLocaleDateString('vi-VN')})</p></div><div className="text-justify space-y-4"><p>Báo cáo tiến độ triển khai trên địa bàn:</p><p className="font-bold">1. Tổng quan:</p><ul className="list-disc pl-8 space-y-2"><li>Tổng số đang theo dõi: <b>{reportModal.type === 'CHUNG' ? statsOverview.total : detailedStats['Gia Lai']?.reduce((acc, curr) => acc + curr.total, 0) || 0}</b> đơn vị.</li><li>Số lượng đã phê duyệt: <b>{reportModal.type === 'CHUNG' ? statsOverview.approved : detailedStats['Gia Lai']?.reduce((acc, curr) => acc + curr.approved, 0) || 0}</b> đơn vị.</li><li>Tỷ lệ hoàn thành: <b>{reportModal.type === 'CHUNG' ? statsOverview.approvedPercent : (((detailedStats['Gia Lai']?.reduce((acc, curr) => acc + curr.approved, 0) || 0) / (detailedStats['Gia Lai']?.reduce((acc, curr) => acc + curr.total, 0) || 1)) * 100).toFixed(1)}%</b>.</li></ul><p className="font-bold mt-6">2. Kế hoạch tiếp theo:</p><p>Đẩy nhanh tiến độ thẩm định, phê duyệt đối với hồ sơ còn tồn đọng.</p></div></div></div></div>
-        )}
+          {/* MERGE MODAL */}
+          {isMergeModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="bg-amber-600 p-4 flex justify-between items-center text-white"><h3 className="font-bold">{editingMergeRecord?.id ? 'Sửa thông tin sáp nhập' : 'Thêm đơn vị sáp nhập'}</h3><button onClick={() => setIsMergeModalOpen(false)} className="hover:bg-amber-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <form onSubmit={handleSaveMerge} className="p-6 space-y-4">
+                  <div><label className="block text-xs font-bold mb-1">Tỉnh cũ</label><input type="text" value={mergeFormData.tinhCu || ''} onChange={e=>setMergeFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Huyện/Thị xã</label><input type="text" value={mergeFormData.huyen || ''} onChange={e=>setMergeFormData(p=>({...p, huyen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Tên Xã/Phường MỚI</label><input type="text" value={mergeFormData.xaMoi || ''} onChange={e=>setMergeFormData(p=>({...p, xaMoi: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Các Xã/Phường CŨ (phân cách bằng dấu phẩy)</label><textarea value={mergeFormData.cacXaCuStr || ''} onChange={e=>setMergeFormData(p=>({...p, cacXaCuStr: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={3} placeholder="Ví dụ: Phường Hải Cảng, Phường Thị Nại..." required></textarea></div>
+                  <div><label className="block text-xs font-bold mb-1">Căn cứ pháp lý</label><input type="text" value={mergeFormData.canCu || ''} onChange={e=>setMergeFormData(p=>({...p, canCu: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                  <div className="flex justify-end gap-3 pt-3 border-t"><button type="button" onClick={() => setIsMergeModalOpen(false)} className="px-4 py-2 border rounded text-sm font-medium">Hủy</button><button type="submit" className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded text-sm font-bold">Lưu sáp nhập</button></div>
+                </form>
+              </div>
+            </div>
+          )}
 
-        {confirmDialog.isOpen && (<div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999999]"><div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center"><div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8" /></div><h3 className="font-bold text-slate-800 mb-2">{confirmDialog.title}</h3><p className="text-slate-600 text-sm mb-6">{confirmDialog.message}</p><div className="flex gap-3 justify-center"><button onClick={closeConfirm} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg">Hủy</button><button onClick={confirmDialog.onConfirm} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">Xác nhận</button></div></div></div>)}
+          {/* CONTACT MODAL */}
+          {isContactModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="bg-cyan-700 p-4 flex justify-between items-center text-white"><h3 className="font-bold">{editingContactRecord?.id ? 'Sửa liên hệ' : 'Thêm liên hệ cán bộ'}</h3><button onClick={() => setIsContactModalOpen(false)} className="hover:bg-cyan-800 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <form onSubmit={handleSaveContact} className="p-6 space-y-4">
+                  <div><label className="block text-xs font-bold mb-1">Đơn vị (Huyện/Xã)</label><input type="text" value={contactFormData.donVi || ''} onChange={e=>setContactFormData(p=>({...p, donVi: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Họ và Tên</label><input type="text" value={contactFormData.hoTen || ''} onChange={e=>setContactFormData(p=>({...p, hoTen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Số điện thoại</label><input type="text" value={contactFormData.dienThoai || ''} onChange={e=>setContactFormData(p=>({...p, dienThoai: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Chức danh</label><input type="text" value={contactFormData.chucDanh || ''} onChange={e=>setContactFormData(p=>({...p, chucDanh: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                  <div><label className="block text-xs font-bold mb-1">Email</label><input type="email" value={contactFormData.email || ''} onChange={e=>setContactFormData(p=>({...p, email: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                  <div className="flex justify-end gap-3 pt-3 border-t"><button type="button" onClick={() => setIsContactModalOpen(false)} className="px-4 py-2 border rounded text-sm font-medium">Hủy</button><button type="submit" className="px-5 py-2 bg-cyan-700 hover:bg-cyan-800 text-white rounded text-sm font-bold">Lưu danh bạ</button></div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* REVIEW MODAL */}
+          {isReviewModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+                <div className="bg-rose-700 p-4 flex justify-between items-center text-white"><h3 className="font-bold">{editingReviewRecord?.id ? 'Sửa nội dung rà soát' : 'Thêm nội dung rà soát'}</h3><button onClick={() => setIsReviewModalOpen(false)} className="hover:bg-rose-800 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
+                <form onSubmit={handleSaveReview} className="p-6 space-y-4">
+                  <div><label className="block text-xs font-bold mb-1">Tỉnh cũ</label><input type="text" value={reviewFormData.tinhCu || ''} onChange={e=>setReviewFormData(p=>({...p, tinhCu: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Huyện/Thị xã cũ</label><input type="text" value={reviewFormData.huyen || ''} onChange={e=>setReviewFormData(p=>({...p, huyen: e.target.value}))} className="w-full border p-2 rounded text-sm" required /></div>
+                  <div><label className="block text-xs font-bold mb-1">Nội dung định hướng phát triển</label><textarea value={reviewFormData.noiDung || ''} onChange={e=>setReviewFormData(p=>({...p, noiDung: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={3} required></textarea></div>
+                  <div><label className="block text-xs font-bold mb-1">Đơn vị phụ trách</label><input type="text" value={reviewFormData.coQuan || ''} onChange={e=>setReviewFormData(p=>({...p, coQuan: e.target.value}))} className="w-full border p-2 rounded text-sm" /></div>
+                  <div><label className="block text-xs font-bold mb-1">Trạng thái rà soát</label><select value={reviewFormData.trangThai || 'Chưa rà soát'} onChange={e=>setReviewFormData(p=>({...p, trangThai: e.target.value}))} className="w-full border p-2 rounded text-sm"><option value="Đã hoàn thành">Đã hoàn thành</option><option value="Đang rà soát">Đang rà soát</option><option value="Chưa rà soát">Chưa rà soát</option></select></div>
+                  <div><label className="block text-xs font-bold mb-1">Link File đính kèm</label><input type="text" value={reviewFormData.file || ''} onChange={e=>setReviewFormData(p=>({...p, file: e.target.value}))} className="w-full border p-2 rounded text-sm" placeholder="https://..." /></div>
+                  <div><label className="block text-xs font-bold mb-1">Ghi chú</label><textarea value={reviewFormData.ghiChu || ''} onChange={e=>setReviewFormData(p=>({...p, ghiChu: e.target.value}))} className="w-full border p-2 rounded text-sm" rows={2}></textarea></div>
+                  <div className="flex justify-end gap-3 pt-3 border-t"><button type="button" onClick={() => setIsReviewModalOpen(false)} className="px-4 py-2 border rounded text-sm font-medium">Hủy</button><button type="submit" className="px-5 py-2 bg-rose-700 hover:bg-rose-800 text-white rounded text-sm font-bold">Lưu rà soát</button></div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* SMART REPORT MODAL & A4 PRINT PREVIEW */}
+          {reportModal.isOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden max-h-[90vh] flex flex-col">
+                <div className="bg-emerald-800 p-4 flex justify-between items-center text-white shrink-0">
+                  <h3 className="font-bold flex items-center gap-2"><FileText className="w-5 h-5"/> MÔ-ĐỦN TẠO BÁO CÁO THÔNG MINH A4</h3>
+                  <button onClick={() => setReportModal({ isOpen: false, type: '' })} className="hover:bg-emerald-700 p-1 rounded-full"><X className="w-5 h-5"/></button>
+                </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
+                  {!showGeneratedReport ? (
+                    <div className="space-y-6">
+                      <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <FileText className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                        <h4 className="font-bold text-slate-700 mb-1">Tải lên file đề cương / mẫu báo cáo (PDF, DOCX)</h4>
+                        <p className="text-xs text-slate-500 mb-4">Hệ thống sẽ tự động nhận diện các mục số liệu và điền dữ liệu quy hoạch hiện tại vào báo cáo chuẩn khổ A4.</p>
+                        <input type="file" accept=".pdf,.docx,.doc" onChange={e => setReportFile(e.target.files[0])} className="text-sm border p-2 rounded bg-white" />
+                        {reportFile && <p className="text-xs font-bold text-emerald-600 mt-2">File đã chọn: {reportFile.name}</p>}
+                      </div>
+                      {reportProgress > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs font-bold text-slate-700"><span>{reportStatus}</span><span>{reportProgress}%</span></div>
+                          <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 transition-all duration-300" style={{ width: `${reportProgress}%` }}></div></div>
+                        </div>
+                      )}
+                      <div className="flex justify-end gap-3 pt-4 border-t">
+                        <button onClick={() => setReportModal({ isOpen: false, type: '' })} className="px-4 py-2 border rounded text-sm font-medium">Hủy</button>
+                        <button onClick={handleGenerateSmartReport} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm transition-colors shadow-sm">Bắt đầu Tổng hợp Báo cáo</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                        <span className="text-sm font-bold text-emerald-800">✅ Đã tổng hợp thành công báo cáo A4 từ CSDL</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => window.print()} className="px-4 py-2 bg-blue-600 text-white rounded font-bold text-xs hover:bg-blue-700 flex items-center gap-1"><FileText className="w-4 h-4"/> In Báo cáo A4 / Xuất PDF</button>
+                          <button onClick={() => setShowGeneratedReport(false)} className="px-3 py-2 border rounded text-xs font-medium bg-white">Làm lại</button>
+                        </div>
+                      </div>
+                      
+                      {/* XEM TRƯỚC VĂN BẢN TRANG A4 */}
+                      <div className="border p-8 bg-white shadow-md rounded-lg max-w-2xl mx-auto font-serif text-slate-900 leading-relaxed text-sm print-area">
+                        <div className="flex justify-between text-center font-sans text-xs font-bold mb-6">
+                          <div><p>SỞ XÂY DỰNG TỈNH GIA LAI</p><p className="font-normal underline">Số: ... /BC-SXD</p></div>
+                          <div><p>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p><p className="font-normal">Độc lập - Tự do - Hạnh phúc</p><p className="font-normal italic mt-1">Gia Lai, ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm {new Date().getFullYear()}</p></div>
+                        </div>
+                        <h2 className="text-center font-bold font-sans text-lg mb-6 uppercase">BÁO CÁO TIẾN ĐỘ THỰC HIỆN QUY HOẠCH<br/>TRÊN ĐỊA BÀN TỈNH GIA LAI</h2>
+                        <p className="mb-4 font-sans text-xs italic">Kính gửi: UBND Tỉnh Gia Lai / Bộ Xây dựng</p>
+                        <p className="text-justify mb-4">Thực hiện Kế hoạch theo dõi quy hoạch đô thị và nông thôn trên địa bàn tỉnh Gia Lai, Sở Xây dựng tổng hợp tình hình thực hiện đến ngày {new Date().toLocaleDateString('vi-VN')} như sau:</p>
+                        <div className="text-justify space-y-4">
+                          <p className="font-bold font-sans">1. Tổng quan số liệu thực hiện:</p>
+                          <ul className="list-disc pl-8 space-y-2">
+                            <li>Tổng số đơn vị quy hoạch đang theo dõi: <b>{reportModal.type === 'CHUNG' ? statsOverview.total : (detailedStats['Gia Lai'] || []).reduce((acc, curr) => acc + curr.total, 0)}</b> đơn vị.</li>
+                            <li>Số lượng đã được phê duyệt chính thức: <b>{reportModal.type === 'CHUNG' ? statsOverview.approved : (detailedStats['Gia Lai'] || []).reduce((acc, curr) => acc + curr.approved, 0)}</b> đơn vị.</li>
+                            <li>Tỷ lệ hoàn thành: <b>{reportModal.type === 'CHUNG' ? statsOverview.approvedPercent + '%' : (((detailedStats['Gia Lai'] || []).reduce((acc, curr) => acc + curr.approved, 0) / Math.max(1, (detailedStats['Gia Lai'] || []).reduce((acc, curr) => acc + curr.total, 0))) * 100).toFixed(1) + '%'}</b>.</li>
+                          </ul>
+                          <p className="font-bold font-sans mt-6">2. Nhiệm vụ và giải pháp trọng tâm:</p>
+                          <p>Tập trung đôn đốc các địa phương đẩy nhanh tiến độ thẩm định, trình duyệt đồ án đối với các khu vực chưa hoàn thành; đảm bảo đồng bộ với định hướng sáp nhập đơn vị hành chính theo Nghị quyết số 1664/NQ-UBTVQH15.</p>
+                        </div>
+                        <div className="flex justify-between mt-12 pt-6 font-sans text-xs">
+                          <div><p className="font-bold">Nơi nhận:</p><p>- Như trên;</p><p>- Lưu: VT, QLĐT.</p></div>
+                          <div className="text-center"><p className="font-bold uppercase">GIÁM ĐỐC</p><p className="italic text-slate-400 mt-8">(Ký, đóng dấu)</p></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CONFIRM DIALOG */}
+          {confirmDialog.isOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[999999]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 text-center">
+                <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8" /></div>
+                <h3 className="font-bold text-slate-800 mb-2">{confirmDialog.title}</h3>
+                <p className="text-slate-600 text-sm mb-6">{confirmDialog.message}</p>
+                <div className="flex gap-3 justify-center">
+                  <button onClick={closeConfirm} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg">Hủy</button>
+                  <button onClick={confirmDialog.onConfirm} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg">Xác nhận</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       );
     }
 
+    // Render App Component
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
