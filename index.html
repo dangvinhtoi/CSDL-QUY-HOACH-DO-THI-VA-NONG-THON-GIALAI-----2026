@@ -483,12 +483,61 @@
 
       // INIT DATA ON LOAD
       useEffect(() => {
-        setData(generate135Records());
-        setDetailData(generateDetailRecords());
-        setMergedData(generateMergedData());
-        setContactData(generateInitialContacts());
-        setReviewData(generateInitialReviews());
+        try {
+          const savedChung = localStorage.getItem('gialai_qh_chung');
+          setData(savedChung ? JSON.parse(savedChung) : generate135Records());
+
+          const savedDetail = localStorage.getItem('gialai_qh_chitiet');
+          setDetailData(savedDetail ? JSON.parse(savedDetail) : generateDetailRecords());
+
+          const savedMerged = localStorage.getItem('gialai_qh_sapnhap');
+          setMergedData(savedMerged ? JSON.parse(savedMerged) : generateMergedData());
+
+          const savedContact = localStorage.getItem('gialai_qh_lienhe');
+          setContactData(savedContact ? JSON.parse(savedContact) : generateInitialContacts());
+
+          const savedReview = localStorage.getItem('gialai_qh_rasoat');
+          setReviewData(savedReview ? JSON.parse(savedReview) : generateInitialReviews());
+        } catch (err) {
+          console.error('Lỗi khi đọc bộ nhớ trình duyệt:', err);
+          setData(generate135Records());
+          setDetailData(generateDetailRecords());
+          setMergedData(generateMergedData());
+          setContactData(generateInitialContacts());
+          setReviewData(generateInitialReviews());
+        }
       }, []);
+
+      // Tự động lưu trạng thái vào localStorage khi có thay đổi
+      useEffect(() => {
+        if (data && data.length > 0) {
+          try { localStorage.setItem('gialai_qh_chung', JSON.stringify(data)); } catch (e) {}
+        }
+      }, [data]);
+
+      useEffect(() => {
+        if (detailData && detailData.length > 0) {
+          try { localStorage.setItem('gialai_qh_chitiet', JSON.stringify(detailData)); } catch (e) {}
+        }
+      }, [detailData]);
+
+      useEffect(() => {
+        if (mergedData && mergedData.length > 0) {
+          try { localStorage.setItem('gialai_qh_sapnhap', JSON.stringify(mergedData)); } catch (e) {}
+        }
+      }, [mergedData]);
+
+      useEffect(() => {
+        if (contactData && contactData.length > 0) {
+          try { localStorage.setItem('gialai_qh_lienhe', JSON.stringify(contactData)); } catch (e) {}
+        }
+      }, [contactData]);
+
+      useEffect(() => {
+        if (reviewData && reviewData.length > 0) {
+          try { localStorage.setItem('gialai_qh_rasoat', JSON.stringify(reviewData)); } catch (e) {}
+        }
+      }, [reviewData]);
 
       const showNotification = (msg) => {
         setNotification(msg);
@@ -612,11 +661,26 @@
             const jsonData = JSON.parse(rawData);
             if (!jsonData || typeof jsonData !== 'object') return showNotification('Lỗi: File dữ liệu không hợp lệ!');
             
-            if (jsonData.qhChung) setData(jsonData.qhChung);
-            if (jsonData.qhChiTiet) setDetailData(jsonData.qhChiTiet);
-            if (jsonData.qhSapNhap) setMergedData(jsonData.qhSapNhap);
-            if (jsonData.qhLienHe) setContactData(jsonData.qhLienHe);
-            if (jsonData.qhRaSoat) setReviewData(jsonData.qhRaSoat);
+            if (jsonData.qhChung) {
+              setData(jsonData.qhChung);
+              try { localStorage.setItem('gialai_qh_chung', JSON.stringify(jsonData.qhChung)); } catch(e){}
+            }
+            if (jsonData.qhChiTiet) {
+              setDetailData(jsonData.qhChiTiet);
+              try { localStorage.setItem('gialai_qh_chitiet', JSON.stringify(jsonData.qhChiTiet)); } catch(e){}
+            }
+            if (jsonData.qhSapNhap) {
+              setMergedData(jsonData.qhSapNhap);
+              try { localStorage.setItem('gialai_qh_sapnhap', JSON.stringify(jsonData.qhSapNhap)); } catch(e){}
+            }
+            if (jsonData.qhLienHe) {
+              setContactData(jsonData.qhLienHe);
+              try { localStorage.setItem('gialai_qh_lienhe', JSON.stringify(jsonData.qhLienHe)); } catch(e){}
+            }
+            if (jsonData.qhRaSoat) {
+              setReviewData(jsonData.qhRaSoat);
+              try { localStorage.setItem('gialai_qh_rasoat', JSON.stringify(jsonData.qhRaSoat)); } catch(e){}
+            }
 
             showNotification('Khôi phục dữ liệu từ file sao lưu thành công!');
             setShowDbModal(false);
@@ -631,6 +695,13 @@
       const handleResetToDefaultDB = () => {
         openConfirm('Xác nhận khôi phục', 'Bạn có chắc chắn muốn khôi phục CSDL về dữ liệu gốc mặc định?', () => {
           closeConfirm();
+          try {
+            localStorage.removeItem('gialai_qh_chung');
+            localStorage.removeItem('gialai_qh_chitiet');
+            localStorage.removeItem('gialai_qh_sapnhap');
+            localStorage.removeItem('gialai_qh_lienhe');
+            localStorage.removeItem('gialai_qh_rasoat');
+          } catch(e) {}
           setData(generate135Records());
           setDetailData(generateDetailRecords());
           setMergedData(generateMergedData());
