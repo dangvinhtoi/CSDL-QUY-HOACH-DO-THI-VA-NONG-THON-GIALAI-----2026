@@ -52,6 +52,31 @@
     const { useState, useEffect, useMemo, useRef } = React;
 
     // ==========================================
+    // BỘ LỌC BỘ NHỚ LOCALSTORAGE (GLOBAL HELPERS)
+    // ==========================================
+    const getStorageItem = (key, fallbackSupplier) => {
+      try {
+        const item = localStorage.getItem(key);
+        if (item !== null && item !== undefined && item !== '') {
+          const parsed = JSON.parse(item);
+          if (parsed !== null && parsed !== undefined) return parsed;
+        }
+      } catch (e) {
+        console.error('Lỗi đọc localStorage:', key, e);
+      }
+      return typeof fallbackSupplier === 'function' ? fallbackSupplier() : fallbackSupplier;
+    };
+
+    const setStorageItem = (key, value) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        console.error('Lỗi ghi localStorage:', key, e);
+      }
+    };
+
+
+    // ==========================================
     // FIREBASE CLOUD CONFIGURATION (KẾT NỐI ĐÁM MÂY)
     // ==========================================
     const DEFAULT_FIREBASE_CONFIG = {
@@ -446,27 +471,7 @@
       const [notification, setNotification] = useState('');
       const [activeTab, setActiveTab] = useState('STATS_CHUNG');
 
-      // BỘ LỌC BỘ NHỚ LOCALSTORAGE
-      const getStorageItem = (key, fallbackSupplier) => {
-        try {
-          const item = localStorage.getItem(key);
-          if (item !== null && item !== undefined && item !== '') {
-            const parsed = JSON.parse(item);
-            if (parsed !== null && parsed !== undefined) return parsed;
-          }
-        } catch (e) {
-          console.error('Lỗi đọc localStorage:', key, e);
-        }
-        return typeof fallbackSupplier === 'function' ? fallbackSupplier() : fallbackSupplier;
-      };
 
-      const setStorageItem = (key, value) => {
-        try {
-          localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-          console.error('Lỗi ghi localStorage:', key, e);
-        }
-      };
 
       // STATE DATA COLLECTIONS VỚI LAZY INITIALIZATION
       const [adminPassword, setAdminPassword] = useState(() => getStorageItem('gialai_admin_pass', '123456'));
