@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSDL QUY HOẠCH GIA LAI (v8.1) & TRA CỨU SÁP NHẬP ĐVHC</title>
+  <title>CSDL QUY HOẠCH GIA LAI (v9) & TRA CỨU SÁP NHẬP ĐVHC</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -446,6 +446,8 @@
     function App() {
       const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [isCloudConnected, setIsCloudConnected] = useState(false);
+      const [googleSheetUrlInput, setGoogleSheetUrlInput] = useState(() => getStorageItem('gialai_gs_url', ''));
+      const [googleSheetUrl, setGoogleSheetUrl] = useState(() => getStorageItem('gialai_gs_url', ''));
       const [firebaseConfigInput, setFirebaseConfigInput] = useState(() => getStorageItem('gialai_fb_config', DEFAULT_FIREBASE_CONFIG));
       const [firebaseConfig, setFirebaseConfig] = useState(() => getStorageItem('gialai_fb_config', DEFAULT_FIREBASE_CONFIG));
       const [showLoginModal, setShowLoginModal] = useState(false);
@@ -546,22 +548,27 @@
 
       useEffect(() => {
         setStorageItem('gialai_qh_chung', data);
+          syncToGoogleSheets({ qhChung: data });
       }, [data]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_chitiet', detailData);
+          syncToGoogleSheets({ qhChiTiet: detailData });
       }, [detailData]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_sapnhap', mergedData);
+          syncToGoogleSheets({ qhSapNhap: mergedData });
       }, [mergedData]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_lienhe', contactData);
+          syncToGoogleSheets({ qhLienHe: contactData });
       }, [contactData]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_rasoat', reviewData);
+          syncToGoogleSheets({ qhRaSoat: reviewData });
       }, [reviewData]);
 
       
@@ -1372,7 +1379,7 @@
               <div className="flex items-center gap-3">
                 <div className="bg-white p-2 rounded-lg"><MapPin className="text-blue-800 h-6 w-6" /></div>
                 <div>
-                  <h1 className="text-xl font-bold uppercase tracking-wide">CSDL QUY HOẠCH GIA LAI (v8.1)</h1>
+                  <h1 className="text-xl font-bold uppercase tracking-wide">CSDL QUY HOẠCH GIA LAI (v9)</h1>
                   <p className="text-blue-200 text-sm">Hệ thống quản lý quy hoạch & tra cứu sáp nhập ĐVHC</p>
                 </div>
               </div>
