@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSDL QUY HOẠCH GIA LAI (v9) & TRA CỨU SÁP NHẬP ĐVHC</title>
+  <title>CSDL QUY HOẠCH GIA LAI (v9.1) (v9.1) & TRA CỨU SÁP NHẬP ĐVHC</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -444,10 +444,12 @@
     // MAIN APP COMPONENT
     // ==========================================
     function App() {
-      const [isLoggedIn, setIsLoggedIn] = useState(false);
       const [isCloudConnected, setIsCloudConnected] = useState(false);
       const [googleSheetUrlInput, setGoogleSheetUrlInput] = useState(() => getStorageItem('gialai_gs_url', ''));
       const [googleSheetUrl, setGoogleSheetUrl] = useState(() => getStorageItem('gialai_gs_url', ''));
+
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [isCloudConnected, setIsCloudConnected] = useState(false);
       const [firebaseConfigInput, setFirebaseConfigInput] = useState(() => getStorageItem('gialai_fb_config', DEFAULT_FIREBASE_CONFIG));
       const [firebaseConfig, setFirebaseConfig] = useState(() => getStorageItem('gialai_fb_config', DEFAULT_FIREBASE_CONFIG));
       const [showLoginModal, setShowLoginModal] = useState(false);
@@ -544,31 +546,32 @@
       // TỰ ĐỘNG ĐỒNG BỘ TRẠNG THÁI VÀO LOCALSTORAGE KHI CÓ THAY ĐỔI
       useEffect(() => {
         setStorageItem('gialai_admin_pass', adminPassword);
+        syncToGoogleSheets();
       }, [adminPassword]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_chung', data);
-          syncToGoogleSheets({ qhChung: data });
+        syncToGoogleSheets();
       }, [data]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_chitiet', detailData);
-          syncToGoogleSheets({ qhChiTiet: detailData });
+        syncToGoogleSheets();
       }, [detailData]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_sapnhap', mergedData);
-          syncToGoogleSheets({ qhSapNhap: mergedData });
+        syncToGoogleSheets();
       }, [mergedData]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_lienhe', contactData);
-          syncToGoogleSheets({ qhLienHe: contactData });
+        syncToGoogleSheets();
       }, [contactData]);
 
       useEffect(() => {
         setStorageItem('gialai_qh_rasoat', reviewData);
-          syncToGoogleSheets({ qhRaSoat: reviewData });
+        syncToGoogleSheets();
       }, [reviewData]);
 
       
@@ -693,7 +696,92 @@
         };
       }, [firebaseConfig]);
 
-      const showNotification = (msg) => {
+      
+      // KẾT NỐI & ĐỒNG BỘ GOOGLE SHEETS
+      const syncToGoogleSheets = (customPayload = null) => {
+        const url = googleSheetUrl || getStorageItem('gialai_gs_url', '');
+        if (!url) return;
+        const payload = customPayload || {
+          qhChung: data,
+          qhChiTiet: detailData,
+          qhSapNhap: mergedData,
+          qhLienHe: contactData,
+          qhRaSoat: reviewData,
+          adminPassword: adminPassword
+        };
+        fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(() => {
+          setIsCloudConnected(true);
+        }).catch(err => {
+          console.error('Lỗi đồng bộ Google Sheets:', err);
+        });
+      };
+
+      const fetchFromGoogleSheets = (customUrl = null) => {
+        const url = customUrl || googleSheetUrl || getStorageItem('gialai_gs_url', '');
+        if (!url) return;
+        fetch(url)
+          .then(res => res.json())
+          .then(jsonData => {
+            if (!jsonData) return;
+            if (jsonData.qhChung && Array.isArray(jsonData.qhChung) && jsonData.qhChung.length > 0) {
+              setData(jsonData.qhChung);
+              setStorageItem('gialai_qh_chung', jsonData.qhChung);
+            }
+            if (jsonData.qhChiTiet && Array.isArray(jsonData.qhChiTiet) && jsonData.qhChiTiet.length > 0) {
+              setDetailData(jsonData.qhChiTiet);
+              setStorageItem('gialai_qh_chitiet', jsonData.qhChiTiet);
+            }
+            if (jsonData.qhSapNhap && Array.isArray(jsonData.qhSapNhap) && jsonData.qhSapNhap.length > 0) {
+              setMergedData(jsonData.qhSapNhap);
+              setStorageItem('gialai_qh_sapnhap', jsonData.qhSapNhap);
+            }
+            if (jsonData.qhLienHe && Array.isArray(jsonData.qhLienHe) && jsonData.qhLienHe.length > 0) {
+              setContactData(jsonData.qhLienHe);
+              setStorageItem('gialai_qh_lienhe', jsonData.qhLienHe);
+            }
+            if (jsonData.qhRaSoat && Array.isArray(jsonData.qhRaSoat) && jsonData.qhRaSoat.length > 0) {
+              setReviewData(jsonData.qhRaSoat);
+              setStorageItem('gialai_qh_rasoat', jsonData.qhRaSoat);
+            }
+            if (jsonData.adminPassword) {
+              setAdminPassword(jsonData.adminPassword);
+              setStorageItem('gialai_admin_pass', jsonData.adminPassword);
+            }
+            setIsCloudConnected(true);
+            showNotification('Đã tải dữ liệu mới nhất từ Google Sheets Đám mây!');
+          })
+          .catch(err => console.error('Lỗi đọc Google Sheets:', err));
+      };
+
+      const handleSaveGoogleSheetUrl = () => {
+        const url = (googleSheetUrlInput || '').trim();
+        setGoogleSheetUrl(url);
+        setStorageItem('gialai_gs_url', url);
+        if (url) {
+          setIsCloudConnected(true);
+          showNotification('Đã lưu URL Google Sheets & Bật kết nối!');
+          fetchFromGoogleSheets(url);
+        } else {
+          setIsCloudConnected(false);
+          showNotification('Đã tắt kết nối Google Sheets!');
+        }
+      };
+
+      // Tự động kiểm tra URL & Nạp dữ liệu từ Google Sheets khi mở web
+      useEffect(() => {
+        const savedUrl = getStorageItem('gialai_gs_url', '');
+        if (savedUrl) {
+          setIsCloudConnected(true);
+          fetchFromGoogleSheets(savedUrl);
+        }
+      }, []);
+
+const showNotification = (msg) => {
         setNotification(msg);
         setTimeout(() => setNotification(''), 4000);
       };
@@ -1379,7 +1467,7 @@
               <div className="flex items-center gap-3">
                 <div className="bg-white p-2 rounded-lg"><MapPin className="text-blue-800 h-6 w-6" /></div>
                 <div>
-                  <h1 className="text-xl font-bold uppercase tracking-wide">CSDL QUY HOẠCH GIA LAI (v9)</h1>
+                  <h1 className="text-xl font-bold uppercase tracking-wide">CSDL QUY HOẠCH GIA LAI (v9.1)</h1>
                   <p className="text-blue-200 text-sm">Hệ thống quản lý quy hoạch & tra cứu sáp nhập ĐVHC</p>
                 </div>
               </div>
@@ -1394,6 +1482,11 @@
                     <div className="flex flex-col items-center gap-1.5">
                       <span className="text-sm font-bold text-white flex items-center gap-1.5"><User className="w-4 h-4 text-emerald-400"/> Admin</span>
                       <div className="flex gap-2">
+                        {isCloudConnected ? (
+                          <span className="text-xs bg-emerald-500/30 text-emerald-200 border border-emerald-400/50 px-2 py-1 rounded font-semibold flex items-center gap-1">📊 Google Sheets Cloud</span>
+                        ) : (
+                          <span className="text-xs bg-slate-500/30 text-slate-300 border border-slate-500/50 px-2 py-1 rounded font-medium flex items-center gap-1">💾 Local Storage</span>
+                        )}
                         <button onClick={() => setShowDbModal(true)} className="text-xs bg-indigo-500/20 hover:bg-indigo-500 text-indigo-100 hover:text-white border border-indigo-500/50 px-2 py-1 rounded transition-colors flex items-center gap-1 font-medium"><Database className="w-3 h-3"/> Quản lý CSDL</button>
                         <button onClick={() => setShowChangePassModal(true)} className="text-xs bg-amber-500/20 hover:bg-amber-500 text-amber-100 hover:text-white border border-amber-500/50 px-2 py-1 rounded transition-colors flex items-center gap-1 font-medium"><Key className="w-3 h-3"/> Đổi MK</button>
                         <button onClick={() => setIsLoggedIn(false)} className="text-xs bg-red-500/20 hover:bg-red-500 text-red-100 hover:text-white border border-red-500/50 px-2 py-1 rounded transition-colors flex items-center gap-1 font-medium"><LogOut className="w-3 h-3"/> Đăng xuất</button>
@@ -1803,6 +1896,20 @@
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in">
                 <div className="bg-indigo-800 p-4 flex justify-between items-center text-white"><h3 className="font-bold flex items-center gap-2"><Database className="w-5 h-5"/> Quản lý CSDL Đám mây & Sao lưu</h3><button onClick={() => setShowDbModal(false)} className="hover:bg-indigo-700 p-1 rounded-full"><X className="w-5 h-5"/></button></div>
                 <div className="p-6 flex flex-col gap-6">
+                  {/* Cấu hình Google Sheets Đám mây (Google Drive) */}
+                  <div className="border border-emerald-300 rounded-xl p-4 bg-emerald-50 flex flex-col gap-3">
+                    <h4 className="font-bold text-emerald-900 flex items-center gap-2 text-sm"><Database className="w-4 h-4 text-emerald-600"/> Cấu hình Google Sheets Đám mây (Google Drive)</h4>
+                    <p className="text-xs text-slate-600">Dán đường <b>URL Web App (kết thúc bằng /exec)</b> từ Google Apps Script để lưu trữ vĩnh viễn dữ liệu trên Google Drive:</p>
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <input type="url" value={googleSheetUrlInput} onChange={e => setGoogleSheetUrlInput(e.target.value)} placeholder="https://script.google.com/macros/s/.../exec" className="flex-1 border border-slate-300 p-2 rounded-lg text-xs font-mono bg-white outline-none focus:ring-2 focus:ring-emerald-500" />
+                      <button onClick={handleSaveGoogleSheetUrl} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg text-xs shrink-0 transition-colors shadow-sm">Lưu & Kết nối Google Sheets</button>
+                    </div>
+                    {isCloudConnected && (
+                      <div className="text-xs text-emerald-700 font-semibold flex items-center gap-1.5 mt-1 bg-white p-2 rounded border border-emerald-200">
+                        <CheckCircle className="w-4 h-4 text-emerald-600"/> Đã kết nối thành công với Google Sheets Đám mây!
+                      </div>
+                    )}
+                  </div>
                   <div className="border rounded-xl p-4 bg-slate-50 flex flex-col gap-3">
                     <h4 className="font-bold text-slate-800 flex items-center gap-2"><Download className="w-4 h-4 text-indigo-600"/> Sao lưu CSDL (.JSON)</h4>
                     <p className="text-xs text-slate-500">Tải xuống bản sao lưu toàn bộ dữ liệu 7 tab để lưu trữ an toàn.</p>
