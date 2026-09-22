@@ -402,7 +402,7 @@
       const [loginError, setLoginError] = useState('');
       const [changePassForm, setChangePassForm] = useState({ current: '', newPass: '', confirm: '' });
       const [changePassError, setChangePassError] = useState('');
-      const [adminPassword, setAdminPassword] = useState('123456');
+      // adminPassword state is initialized above with lazy getter
 
       const [forgotPassStep, setForgotPassStep] = useState(1);
       const [recoveryPhone, setRecoveryPhone] = useState('');
@@ -418,12 +418,35 @@
       const [notification, setNotification] = useState('');
       const [activeTab, setActiveTab] = useState('STATS_CHUNG');
 
-      // STATE DATA COLLECTIONS
-      const [data, setData] = useState([]);
-      const [detailData, setDetailData] = useState([]);
-      const [mergedData, setMergedData] = useState([]);
-      const [contactData, setContactData] = useState([]);
-      const [reviewData, setReviewData] = useState([]);
+      // BỘ LỌC BỘ NHỚ LOCALSTORAGE
+      const getStorageItem = (key, fallbackSupplier) => {
+        try {
+          const item = localStorage.getItem(key);
+          if (item !== null && item !== undefined && item !== '') {
+            const parsed = JSON.parse(item);
+            if (parsed !== null && parsed !== undefined) return parsed;
+          }
+        } catch (e) {
+          console.error('Lỗi đọc localStorage:', key, e);
+        }
+        return typeof fallbackSupplier === 'function' ? fallbackSupplier() : fallbackSupplier;
+      };
+
+      const setStorageItem = (key, value) => {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+          console.error('Lỗi ghi localStorage:', key, e);
+        }
+      };
+
+      // STATE DATA COLLECTIONS VỚI LAZY INITIALIZATION
+      const [adminPassword, setAdminPassword] = useState(() => getStorageItem('gialai_admin_pass', '123456'));
+      const [data, setData] = useState(() => getStorageItem('gialai_qh_chung', generate135Records));
+      const [detailData, setDetailData] = useState(() => getStorageItem('gialai_qh_chitiet', generateDetailRecords));
+      const [mergedData, setMergedData] = useState(() => getStorageItem('gialai_qh_sapnhap', generateMergedData));
+      const [contactData, setContactData] = useState(() => getStorageItem('gialai_qh_lienhe', generateInitialContacts));
+      const [reviewData, setReviewData] = useState(() => getStorageItem('gialai_qh_rasoat', generateInitialReviews));
 
       // FILTERS QH CHUNG
       const [searchTerm, setSearchTerm] = useState('');
@@ -481,62 +504,29 @@
       const [reportStatus, setReportStatus] = useState('');
       const [showGeneratedReport, setShowGeneratedReport] = useState(false);
 
-      // INIT DATA ON LOAD
+      // TỰ ĐỘNG ĐỒNG BỘ TRẠNG THÁI VÀO LOCALSTORAGE KHI CÓ THAY ĐỔI
       useEffect(() => {
-        try {
-          const savedChung = localStorage.getItem('gialai_qh_chung');
-          setData(savedChung ? JSON.parse(savedChung) : generate135Records());
+        setStorageItem('gialai_admin_pass', adminPassword);
+      }, [adminPassword]);
 
-          const savedDetail = localStorage.getItem('gialai_qh_chitiet');
-          setDetailData(savedDetail ? JSON.parse(savedDetail) : generateDetailRecords());
-
-          const savedMerged = localStorage.getItem('gialai_qh_sapnhap');
-          setMergedData(savedMerged ? JSON.parse(savedMerged) : generateMergedData());
-
-          const savedContact = localStorage.getItem('gialai_qh_lienhe');
-          setContactData(savedContact ? JSON.parse(savedContact) : generateInitialContacts());
-
-          const savedReview = localStorage.getItem('gialai_qh_rasoat');
-          setReviewData(savedReview ? JSON.parse(savedReview) : generateInitialReviews());
-        } catch (err) {
-          console.error('Lỗi khi đọc bộ nhớ trình duyệt:', err);
-          setData(generate135Records());
-          setDetailData(generateDetailRecords());
-          setMergedData(generateMergedData());
-          setContactData(generateInitialContacts());
-          setReviewData(generateInitialReviews());
-        }
-      }, []);
-
-      // Tự động lưu trạng thái vào localStorage khi có thay đổi
       useEffect(() => {
-        if (data && data.length > 0) {
-          try { localStorage.setItem('gialai_qh_chung', JSON.stringify(data)); } catch (e) {}
-        }
+        setStorageItem('gialai_qh_chung', data);
       }, [data]);
 
       useEffect(() => {
-        if (detailData && detailData.length > 0) {
-          try { localStorage.setItem('gialai_qh_chitiet', JSON.stringify(detailData)); } catch (e) {}
-        }
+        setStorageItem('gialai_qh_chitiet', detailData);
       }, [detailData]);
 
       useEffect(() => {
-        if (mergedData && mergedData.length > 0) {
-          try { localStorage.setItem('gialai_qh_sapnhap', JSON.stringify(mergedData)); } catch (e) {}
-        }
+        setStorageItem('gialai_qh_sapnhap', mergedData);
       }, [mergedData]);
 
       useEffect(() => {
-        if (contactData && contactData.length > 0) {
-          try { localStorage.setItem('gialai_qh_lienhe', JSON.stringify(contactData)); } catch (e) {}
-        }
+        setStorageItem('gialai_qh_lienhe', contactData);
       }, [contactData]);
 
       useEffect(() => {
-        if (reviewData && reviewData.length > 0) {
-          try { localStorage.setItem('gialai_qh_rasoat', JSON.stringify(reviewData)); } catch (e) {}
-        }
+        setStorageItem('gialai_qh_rasoat', reviewData);
       }, [reviewData]);
 
       const showNotification = (msg) => {
@@ -636,7 +626,14 @@
 
       // BACKUP & RESTORE JSON DB
       const handleExportDB = () => {
-        const exportObj = { qhChung: data, qhChiTiet: detailData, qhSapNhap: mergedData, qhLienHe: contactData, qhRaSoat: reviewData };
+        const exportObj = { 
+          adminPassword: adminPassword, 
+          qhChung: data, 
+          qhChiTiet: detailData, 
+          qhSapNhap: mergedData, 
+          qhLienHe: contactData, 
+          qhRaSoat: reviewData 
+        };
         const jsonString = JSON.stringify(exportObj, null, 2);
         const blob = new Blob([jsonString], { type: "application/json" });
         const url = URL.createObjectURL(blob);
@@ -660,30 +657,71 @@
             if (rawData.charCodeAt(0) === 0xFEFF) rawData = rawData.slice(1);
             const jsonData = JSON.parse(rawData);
             if (!jsonData || typeof jsonData !== 'object') return showNotification('Lỗi: File dữ liệu không hợp lệ!');
-            
-            if (jsonData.qhChung) {
-              setData(jsonData.qhChung);
-              try { localStorage.setItem('gialai_qh_chung', JSON.stringify(jsonData.qhChung)); } catch(e){}
-            }
-            if (jsonData.qhChiTiet) {
-              setDetailData(jsonData.qhChiTiet);
-              try { localStorage.setItem('gialai_qh_chitiet', JSON.stringify(jsonData.qhChiTiet)); } catch(e){}
-            }
-            if (jsonData.qhSapNhap) {
-              setMergedData(jsonData.qhSapNhap);
-              try { localStorage.setItem('gialai_qh_sapnhap', JSON.stringify(jsonData.qhSapNhap)); } catch(e){}
-            }
-            if (jsonData.qhLienHe) {
-              setContactData(jsonData.qhLienHe);
-              try { localStorage.setItem('gialai_qh_lienhe', JSON.stringify(jsonData.qhLienHe)); } catch(e){}
-            }
-            if (jsonData.qhRaSoat) {
-              setReviewData(jsonData.qhRaSoat);
-              try { localStorage.setItem('gialai_qh_rasoat', JSON.stringify(jsonData.qhRaSoat)); } catch(e){}
+
+            let importedCount = 0;
+
+            if (jsonData.adminPassword) {
+              setAdminPassword(jsonData.adminPassword);
+              setStorageItem('gialai_admin_pass', jsonData.adminPassword);
             }
 
-            showNotification('Khôi phục dữ liệu từ file sao lưu thành công!');
-            setShowDbModal(false);
+            if (jsonData.qhChung || jsonData.data || jsonData.records) {
+              const list = jsonData.qhChung || jsonData.data || jsonData.records;
+              if (Array.isArray(list)) {
+                setData(list);
+                setStorageItem('gialai_qh_chung', list);
+                importedCount++;
+              }
+            }
+
+            if (jsonData.qhChiTiet || jsonData.detailData) {
+              const list = jsonData.qhChiTiet || jsonData.detailData;
+              if (Array.isArray(list)) {
+                setDetailData(list);
+                setStorageItem('gialai_qh_chitiet', list);
+                importedCount++;
+              }
+            }
+
+            if (jsonData.qhSapNhap || jsonData.mergedData) {
+              const list = jsonData.qhSapNhap || jsonData.mergedData;
+              if (Array.isArray(list)) {
+                setMergedData(list);
+                setStorageItem('gialai_qh_sapnhap', list);
+                importedCount++;
+              }
+            }
+
+            if (jsonData.qhLienHe || jsonData.contactData) {
+              const list = jsonData.qhLienHe || jsonData.contactData;
+              if (Array.isArray(list)) {
+                setContactData(list);
+                setStorageItem('gialai_qh_lienhe', list);
+                importedCount++;
+              }
+            }
+
+            if (jsonData.qhRaSoat || jsonData.reviewData) {
+              const list = jsonData.qhRaSoat || jsonData.reviewData;
+              if (Array.isArray(list)) {
+                setReviewData(list);
+                setStorageItem('gialai_qh_rasoat', list);
+                importedCount++;
+              }
+            }
+
+            if (Array.isArray(jsonData)) {
+              setData(jsonData);
+              setStorageItem('gialai_qh_chung', jsonData);
+              importedCount++;
+            }
+
+            if (importedCount > 0) {
+              showNotification('Khôi phục dữ liệu từ file sao lưu (.json) thành công!');
+              setShowDbModal(false);
+            } else {
+              showNotification('Không tìm thấy cấu trúc dữ liệu phù hợp trong file JSON!');
+            }
           } catch(err) {
             showNotification('Lỗi đọc file JSON: ' + err.message);
           }
@@ -695,20 +733,21 @@
       const handleResetToDefaultDB = () => {
         openConfirm('Xác nhận khôi phục', 'Bạn có chắc chắn muốn khôi phục CSDL về dữ liệu gốc mặc định?', () => {
           closeConfirm();
-          try {
-            localStorage.removeItem('gialai_qh_chung');
-            localStorage.removeItem('gialai_qh_chitiet');
-            localStorage.removeItem('gialai_qh_sapnhap');
-            localStorage.removeItem('gialai_qh_lienhe');
-            localStorage.removeItem('gialai_qh_rasoat');
-          } catch(e) {}
+          localStorage.removeItem('gialai_admin_pass');
+          localStorage.removeItem('gialai_qh_chung');
+          localStorage.removeItem('gialai_qh_chitiet');
+          localStorage.removeItem('gialai_qh_sapnhap');
+          localStorage.removeItem('gialai_qh_lienhe');
+          localStorage.removeItem('gialai_qh_rasoat');
+
+          setAdminPassword('123456');
           setData(generate135Records());
           setDetailData(generateDetailRecords());
           setMergedData(generateMergedData());
           setContactData(generateInitialContacts());
           setReviewData(generateInitialReviews());
           setShowDbModal(false);
-          showNotification('Khôi phục CSDL gốc thành công!');
+          showNotification('Đã xóa bộ nhớ đệm và khôi phục CSDL gốc thành công!');
         });
       };
 
@@ -741,10 +780,11 @@
           return;
         }
         setAdminPassword(changePassForm.newPass);
+        setStorageItem('gialai_admin_pass', changePassForm.newPass);
         setShowChangePassModal(false);
         setChangePassForm({ current: '', newPass: '', confirm: '' });
         setChangePassError('');
-        showNotification('Đổi mật khẩu thành công!');
+        showNotification('Đổi mật khẩu thành công và đã lưu vào bộ nhớ trình duyệt!');
       };
 
       const handleSendOTP = (e) => {
